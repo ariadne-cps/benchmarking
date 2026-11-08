@@ -34,7 +34,6 @@ inline std::string_view summary_field_id(SummaryField field) {
         case SummaryField::Count: return "count";
         default: throw std::invalid_argument("unknown summary field");
     }
-    throw std::invalid_argument("unknown summary field");
 }
 
 inline std::string_view summary_field_heading(SummaryField field) {
@@ -50,7 +49,6 @@ inline std::string_view summary_field_heading(SummaryField field) {
         case SummaryField::Count: return "N";
         default: throw std::invalid_argument("unknown summary field");
     }
-    throw std::invalid_argument("unknown summary field");
 }
 
 // Values use the names accepted by --summary. Duplicates are rejected because
