@@ -69,11 +69,19 @@ public:
                     return [this, fields = std::move(fields)]() mutable {
                         _summary_fields = std::move(fields);
                     };
+                }),
+            make_valued_argument_parser(
+                "", "warmups",
+                "Warm-up executions per configuration (default: 0; excluded from statistics)",
+                [this](String const& text) -> VoidFunction {
+                    unsigned const count = parse_unsigned<unsigned>(text);
+                    return [this, count]() { _warmups = count; };
                 })
         }));
     }
 
     SummaryFields const& summary_fields() const { return _summary_fields; }
+    unsigned warmups() const { return _warmups; }
 
     void add_parameters(Matrix& matrix) {
         add(CommandLineContribution("benchmark-parameters", matrix.parsers()));
@@ -81,6 +89,7 @@ public:
 
 private:
     SummaryFields _summary_fields = default_summary_fields();
+    unsigned _warmups = 0u;
 };
 } // namespace Ariadne::Benchmarking
 
