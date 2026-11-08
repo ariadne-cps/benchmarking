@@ -1,18 +1,21 @@
-# C++ tutorial
+# C++ benchmarking tutorial
 
-`tutorial_benchmark.cpp` is the maintained minimal example of an Ariadne
-benchmark. It is built only by the explicit `tutorial_benchmark` target.
-It demonstrates a procedural workflow:
+The maintained `tutorial_benchmarking.cpp` demonstrates parameter sequences,
+Cartesian combinations and progressively detailed Logging.
 
-1. Parse validated CLI options including `--concurrency`, initializing
-   the Logger through ThreadManager.
-2. Prepare deterministic inputs outside the measurement.
-3. Time exactly one intended operation with `measure_ns`.
-4. Validate the result outside the timed region.
-5. Exclude warm-up samples.
-6. Summarize the measurements and emit a Logger-backed report.
+```sh
+cmake --build build-release --target tutorial_benchmarking
+./build-release/tutorial/tutorial_benchmarking --lengths 64,256 --iterations 100,300 --samples 3 --warmups 1 --concurrency 0 --verbosity 4
+```
 
-Run `cmake --build build-release --target tutorial_benchmark` and execute
-`build-release/tutorial/tutorial_benchmark`. Do not accidentally add this
-target to the common `benchmarks` aggregate: it is a tutorial, not a library
-performance baseline.
+All benchmark-specific arguments accept either a scalar or a comma-separated
+list; duplicates are preserved and the final registered axis varies fastest.
+Global `--concurrency` and Logging options are not experiment axes.
+
+Verbosity 0: silent. Verbosity 1: sequences and overall results. Verbosity
+2: matrix configuration start/complete (or execution start/complete for a
+single configuration). Verbosity 3: matrix execution start/complete (or
+measurements for a single configuration). Verbosity 4: individual matrix
+measurements. The measurement loop itself does not log.
+
+Construction, warmup, timing, correctness checks and reporting are explicit.

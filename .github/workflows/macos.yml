@@ -60,8 +60,8 @@ jobs:
       - name: Build and execute C++ benchmark tutorial
         if: matrix.build_type == 'Release'
         run: |
-          cmake --build "${{ runner.workspace }}/build" --target tutorial_benchmark
-          "${{ runner.workspace }}/build/tutorial/tutorial_benchmark" --iterations 100 --samples 3 --warmups 1
+          cmake --build "${{ runner.workspace }}/build" --target tutorial_benchmarking
+          "${{ runner.workspace }}/build/tutorial/tutorial_benchmarking" --lengths 32,64 --iterations 100,200 --samples 3 --warmups 1 --verbosity 4
 
 
       - name: Build Debug tests

@@ -23,7 +23,11 @@ remains in its owning repository.** See the
 - **Calibration:** convert caller-supplied pilot timing to bounded repetitions,
   without implicitly running or mutating any experiment.
 - **Comparison:** speedup (baseline/candidate) and geometric mean of ratios.
-- **Reporting:** simple Logging-backed tabular summaries.
+- **Parameter matrices:** all custom benchmark arguments accept ordered typed
+  lists; a lazy Cartesian product preserves duplicates and exposes each case.
+- **Reporting:** Logging-backed summaries with complete parameter sequences
+  in the header and one labelled row per configuration.
+- **Progress:** Logging details for configurations, executions and samples.
 - **Optimization barrier:** keep measured results observable.
 
 The library never changes a benchmark's measurement boundaries, warm-up policy,
@@ -67,8 +71,8 @@ ctest --test-dir build-debug --output-on-failure
 
 ```sh
 cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
-cmake --build build-release --target tutorial_benchmark
-./build-release/tutorial/tutorial_benchmark --iterations 1000 --samples 7 --warmups 2
+cmake --build build-release --target tutorial_benchmarking
+./build-release/tutorial/tutorial_benchmarking --iterations 1000 --samples 7 --warmups 2
 ```
 
 The tutorial illustrates `--concurrency` configuration, input preparation
