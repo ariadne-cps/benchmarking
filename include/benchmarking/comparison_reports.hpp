@@ -153,15 +153,9 @@ private:
         if (found != headings.end()) return found->second;
         if (name.compare(0u, 6u, "param:") == 0)
             return name.substr(6u);
-        for (SummaryField field : {SummaryField::Minimum,SummaryField::Maximum,
-                                  SummaryField::Mean,SummaryField::MAD,
-                                  SummaryField::Median,SummaryField::P95,
-                                  SummaryField::Stddev,SummaryField::Variance,
-                                  SummaryField::Count}) {
-            if (name == summary_field_id(field))
-                return std::string(summary_field_heading(field));
-        }
-        return name;
+        // render_definition() validates the schema before requesting headings.
+        // Remaining names are summary fields; reuse their parser and labels.
+        return std::string(summary_field_heading(parse_summary_fields(name).front()));
     }
 
     static void dimensions(Cells& cells, ComparisonContext const& context) {

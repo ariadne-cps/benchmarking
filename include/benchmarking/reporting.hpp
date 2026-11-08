@@ -36,6 +36,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -150,20 +151,15 @@ private:
 
     static std::string formatted_value(Statistics const& stats, SummaryField field) {
         if (field == SummaryField::Count) return std::to_string(stats.count);
-        double value = 0.0;
-        switch (field) {
-            case SummaryField::Minimum: value = stats.minimum; break;
-            case SummaryField::Maximum: value = stats.maximum; break;
-            case SummaryField::Mean: value = stats.mean; break;
-            case SummaryField::MAD: value = stats.mad; break;
-            case SummaryField::Median: value = stats.median; break;
-            case SummaryField::P95: value = stats.p95; break;
-            case SummaryField::Stddev: value = stats.stddev; break;
-            case SummaryField::Variance: value = stats.variance; break;
-            case SummaryField::Count: break;
-            default: throw std::invalid_argument("unknown summary field");
-        }
-        return Table::number(value);
+        // set_summary_fields() validates every field before storing it.
+        // The remaining enum values index the timing statistics in enum order.
+        constexpr double Statistics::* members[] = {
+            &Statistics::minimum, &Statistics::maximum, &Statistics::mean,
+            &Statistics::mad, &Statistics::median, &Statistics::p95,
+            &Statistics::stddev, &Statistics::variance
+        };
+        static_assert(std::size(members) == static_cast<std::size_t>(SummaryField::Count));
+        return Table::number(stats.*members[static_cast<std::size_t>(field)]);
     }
 
     std::string _title;

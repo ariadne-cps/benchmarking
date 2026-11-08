@@ -208,9 +208,7 @@ public:
                     throw std::invalid_argument(
                         "unpaired comparison: missing operation or configuration");
                 MeasurementRow const& other = *found->second;
-                if (row.context.label != other.context.label or
-                    row.context.dimensions != other.context.dimensions)
-                    throw std::invalid_argument("mismatched comparison metadata");
+                // add() enforces identical metadata for every shared ordinal.
                 double const ref_ns = timing(row.statistics, metric);
                 double const cand_ns = timing(other.statistics, metric);
                 if (not std::isfinite(ref_ns) or not std::isfinite(cand_ns)
@@ -218,8 +216,9 @@ public:
                     throw std::invalid_argument("comparison timings must be positive and finite");
                 double const slowdown = cand_ns / ref_ns;
                 double const speedup = ref_ns / cand_ns;
-                if (not std::isfinite(slowdown) or not std::isfinite(speedup)
-                    or slowdown <= 0.0 or speedup <= 0.0)
+                // Both operands are positive. If a ratio underflows to zero,
+                // its reciprocal overflows, so finiteness catches that too.
+                if (not std::isfinite(slowdown) or not std::isfinite(speedup))
                     throw std::overflow_error("comparison ratio overflow");
                 result.push_back({reference, candidate, row.operation, row.context,
                                   ref_ns, cand_ns, slowdown, speedup});
@@ -272,9 +271,10 @@ public:
         std::vector<AggregateRow> result;
         result.reserve(groups.size());
         for (auto& group : groups) {
+            // Each group contains at least one pair with positive times;
+            // summing positive floating-point values cannot produce zero.
             if (not std::isfinite(group.reference_sum) or
-                not std::isfinite(group.candidate_sum) or
-                group.reference_sum <= 0.0 or group.candidate_sum <= 0.0)
+                not std::isfinite(group.candidate_sum))
                 throw std::overflow_error("aggregate timing overflow");
             group.row.geomean = std::exp(group.log_sum /
                 static_cast<double>(group.row.operations));
