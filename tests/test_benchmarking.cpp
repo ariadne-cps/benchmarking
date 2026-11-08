@@ -60,7 +60,7 @@ int main() {
         Report defaults("Default");
         defaults.add("one", "operation", stats);
         std::string const header = defaults.table().substr(
-            0u, defaults.table().find('\\n'));
+            0u, defaults.table().find('\n'));
         auto const min_pos = header.find("Min (ns)");
         auto const max_pos = header.find("Max (ns)");
         auto const mean_pos = header.find("Mean (ns)");
