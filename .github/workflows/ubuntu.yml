@@ -15,9 +15,6 @@ jobs:
   build-test:
     name: ${{ matrix.config.name }} [${{ matrix.build_type }}]
     runs-on: ${{ matrix.config.os }}
-    permissions:
-      contents: read
-      statuses: write
     strategy:
       fail-fast: false
       matrix:
@@ -63,9 +60,7 @@ jobs:
 
       - name: Build Release library
         if: matrix.build_type == 'Release'
-        run: |
-          set -o pipefail
-          cmake --build "${{ runner.workspace }}/build" --parallel "$NPROC" --target ariadne-benchmarking 2>&1 | tee "${{ runner.workspace }}/build/build.log"
+        run: cmake --build "${{ runner.workspace }}/build" --parallel "$NPROC" --target ariadne-benchmarking
 
       - name: Build and execute C++ benchmark tutorial
         if: matrix.build_type == 'Release'
@@ -76,26 +71,8 @@ jobs:
 
       - name: Build Debug tests
         if: matrix.build_type == 'Debug'
-        run: |
-          set -o pipefail
-          cmake --build "${{ runner.workspace }}/build" --parallel "$NPROC" --target tests 2>&1 | tee "${{ runner.workspace }}/build/build.log"
+        run: cmake --build "${{ runner.workspace }}/build" --parallel "$NPROC" --target tests
 
       - name: Run Debug tests
         if: matrix.build_type == 'Debug'
         run: ctest --test-dir "${{ runner.workspace }}/build" -j "$NPROC" --output-on-failure
-
-      - name: Temporary first compiler error report
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          logfile="${{ runner.workspace }}/build/build.log"
-          if [ -f "$logfile" ]; then
-            line="$(grep -E -m1 'error:|fatal error:|undefined reference|warning:.*\[-Werror' "$logfile" || true)"
-            if [ -z "$line" ]; then line="$(tail -n 2 "$logfile" | head -n 1)"; fi
-          else
-            line="Build did not reach compilation"
-          fi
-          payload="$(jq -n --arg msg "$(printf '%s' "$line" | cut -c 1-130)" '{"state":"failure","context":"benchmarking/compare-compiler-diagnostic","description":$msg}')"
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" --data "$payload" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" || true
