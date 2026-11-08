@@ -80,6 +80,79 @@ int main() {
                   table.find("Median (ns)") != std::string::npos,
                   "custom report labels and undefined dispersion rendered");
     });
+    suite.add("table widths use actual displayed values", [](Context& ctx) {
+        Table table({
+            {"Backend"}, {"Operation"},
+            {"Bits", 0u, TableAlignment::Right},
+            {"Median (ns)", 0u, TableAlignment::Right}
+        }, TableOptions::ruled());
+        table.add_row({"floatdp", "add", "53", Table::number(2.5)});
+        table.add_row({"floatmp", "a_very_long_operation_name", "1024",
+                       Table::number(1234567.125)});
+        auto const result = table.str();
+        auto const first_end = result.find('\n');
+        auto const header_end = result.find('\n', first_end + 1u);
+        auto const separator_end = result.find('\n', header_end + 1u);
+        auto const first_row_end = result.find('\n', separator_end + 1u);
+        auto const second_row_end = result.find('\n', first_row_end + 1u);
+        auto const header = result.substr(first_end + 1u, header_end-first_end-1u);
+        auto const short_row = result.substr(separator_end + 1u, first_row_end-separator_end-1u);
+        auto const long_row = result.substr(first_row_end + 1u, second_row_end-first_row_end-1u);
+        ctx.prove(header.find("Operation") != std::string::npos &&
+                  header.find("Median (ns)") != std::string::npos,
+                  "heading contains dimensions and measures");
+        ctx.prove(short_row.size() == long_row.size() &&
+                  short_row.size() == header.size(),
+                  "columns use longest rendered cell, including long operation");
+        ctx.prove(long_row.find("1234567.125") != std::string::npos &&
+                  short_row.find("2.500") != std::string::npos,
+                  "numeric columns preserve formatted content");
+        ctx.prove(result.substr(0u, first_end) ==
+                  std::string(header.size(), '='),
+                  "outer rule spans computed table width");
+    });
+    suite.add("group separators and optional minimum widths", [](Context& ctx) {
+        auto options = TableOptions::ruled();
+        options.group_columns = {0u};
+        Table grouped({{"Backend"}, {"Operation"}, {"Bits"}}, options);
+        grouped.add_row({"floatdp", "add", "53"});
+        grouped.add_row({"floatdp", "sub", "53"});
+        grouped.add_row({"floatmp", "add", "53"});
+        auto const output = grouped.str();
+        auto const row_separator = output.find("\n-", output.find("sub"));
+        ctx.prove(row_separator != std::string::npos &&
+                  row_separator < output.find("floatmp", row_separator),
+                  "group separator inserted when backend changes");
+        Table padded({{"A", 10u}, {"B"}});
+        padded.add_row({"x", "value"});
+        ctx.prove(padded.str().find("x         ") != std::string::npos,
+                  "explicit minimum width supported but not imposed by default");
+    });
+    suite.add("custom report dimensions and computed numeric widths",
+              [](Context& ctx) {
+        Samples a;
+        a.add(2.0);
+        Samples b;
+        b.add(123456789.0);
+        Report report("Comparison", {SummaryField::Median});
+        report.set_dimension_columns({
+            {"Backend"}, {"Operation"}, {"Bits", 0u, TableAlignment::Right}
+        });
+        auto options = TableOptions::ruled();
+        options.group_columns = {0u};
+        report.set_table_options(options);
+        report.add_row({"floatdp", "add", "53"}, summarize(a));
+        report.add_row({"floatmp", "long_operation_name", "53"}, summarize(b));
+        auto const output = report.table();
+        ctx.prove(output.find("Backend") != std::string::npos &&
+                  output.find("Operation") != std::string::npos &&
+                  output.find("Bits") != std::string::npos &&
+                  output.find("Median (ns)") != std::string::npos,
+                  "descriptive and statistical columns share a generic table");
+        ctx.prove(output.find("123456789.000") != std::string::npos &&
+                  output.find("long_operation_name") != std::string::npos,
+                  "long numeric and descriptive values are fully displayed");
+    });
     suite.add("stable sample dispersion", [](Context& ctx) {
         Samples samples;
         samples.add(1000000001.0);

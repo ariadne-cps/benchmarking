@@ -30,6 +30,9 @@ remains in its owning repository.** See the
   in the header and one labelled row per configuration. The standard
   `--summary` option chooses report columns and order; the default is
   `min,max,mean,mad`. Also available: `median,p95,stddev,variance,count`.
+- **Dynamic-width tables:** the generic table engine sizes every column by
+  the longest formatted cell or heading, supports grouping, separator rules,
+  optional minimum widths, and arbitrary descriptive and numeric columns.
 - **Warm-ups:** the standard `--warmups N` option defaults to zero.
   `Runner` performs each warm-up with preparation, timing and verification,
   excludes its timing from statistics and emits progress through Logging.
@@ -120,3 +123,35 @@ opt-in and isolated from production targets.
 Please open issues or pull requests in this repository for common benchmarking
 facilities. Domain-specific benchmark cases and oracles remain in their
 respective Ariadne repositories.
+
+
+## Tabular output for comparisons
+
+The generic table API supports FloatDP/FloatMP-style reports without
+incorporating backend-specific ratio calculations:
+
+~~~cpp
+using namespace Ariadne::Benchmarking;
+TableOptions options = TableOptions::ruled();
+options.group_columns = {0u};
+Table table({
+    {"Backend"}, {"Operation"},
+    {"Bits", 0u, TableAlignment::Right},
+    {"Median (ns)", 0u, TableAlignment::Right}
+}, options);
+table.add_row({"floatdp", "add_nearest", "53", Table::number(12.345)});
+table.add_row({"floatmp", "add_nearest", "53", Table::number(23.456)});
+std::string text = table.str();
+~~~
+
+Each column width is the maximum length of its heading and every already
+formatted displayed cell; no default fixed width is imposed. Clients can
+choose left/right alignment, column separators, optional top/header/group/
+bottom rules, and grouping by any number of descriptive columns. Explicit
+minimum column widths are available when a fixed layout is desired.
+
+The Report class uses the same engine. Its old two-descriptor add API remains
+available, while set_dimension_columns, set_table_options, and add_row allow
+multidimensional tables. Computations such as FloatMP/FloatDP slowdown,
+geometric mean, weighted total-time slowdown, and worst case remain in the
+owning benchmark, which can format them through the generic Table.
