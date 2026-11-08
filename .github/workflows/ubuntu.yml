@@ -15,9 +15,6 @@ jobs:
   build-test:
     name: ${{ matrix.config.name }} [${{ matrix.build_type }}]
     runs-on: ${{ matrix.config.os }}
-    permissions:
-      contents: read
-      statuses: write
     strategy:
       fail-fast: false
       matrix:
@@ -54,27 +51,12 @@ jobs:
 
       - name: Configure CMake
         run: |
-          set -o pipefail
-          {
           cmake -S . -B "${{ runner.workspace }}/build" -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} \
             -DCMAKE_C_COMPILER_LAUNCHER="$SCCACHE_LAUNCHER" \
             -DCMAKE_CXX_COMPILER_LAUNCHER="$SCCACHE_LAUNCHER" \
             -DWARNINGS_AS_ERRORS=ON
-          } 2>&1 | tee "${{ runner.workspace }}/configure.log"
-
-      - name: Temporary CMake configure diagnostic
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          file="${{ runner.workspace }}/configure.log"
-          line="$(grep -E -m1 'CMake Error|fatal:|error:|Failed to|not found|not initialized|Cannot|No such file' "$file" || true)"
-          if [ -z "$line" ]; then line="$(tail -n 2 "$file" | head -n 1)"; fi
-          payload="$(jq -n --arg msg "$(printf '%s' "$line" | cut -c 1-130)" '{"state":"failure","context":"benchmarking/config-diagnostic","description":$msg}')"
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" --data "$payload" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" || true
 
       - name: Build Release library
         if: matrix.build_type == 'Release'
