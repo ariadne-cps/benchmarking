@@ -164,17 +164,27 @@ int main() {
             Implementation value{};
             record("increment",
                 [&] { value = Implementation{}; },
-                [&] { value += Implementation{1}; keep_alive(value); },
                 [&] {
-                    if (value != Implementation{1})
+                    for (unsigned i = 0u; i < 1000u; ++i) {
+                        value += Implementation{1};
+                        keep_alive(value);
+                    }
+                },
+                [&] {
+                    if (value != Implementation{1000})
                         throw std::runtime_error("incorrect increment");
                     ++verifications;
                 });
             record("double",
                 [&] { value = Implementation{}; },
-                [&] { value = Implementation{2}; keep_alive(value); },
                 [&] {
-                    if (value != Implementation{2})
+                    for (unsigned i = 0u; i < 1000u; ++i) {
+                        value += Implementation{2};
+                        keep_alive(value);
+                    }
+                },
+                [&] {
+                    if (value != Implementation{2000})
                         throw std::runtime_error("incorrect double");
                     ++verifications;
                 });
