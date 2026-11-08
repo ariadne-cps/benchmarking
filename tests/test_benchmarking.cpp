@@ -19,7 +19,76 @@ int main() {
         ctx.prove(result.count == 4 && result.median == 2.5
                   && result.mean == 2.5 && result.minimum == 1.0
                   && result.maximum == 4.0 && result.p95 == 4.0
-                  && result.mad == 1.0, "summary of even samples");
+                  && result.mad == 1.0
+                  && std::abs(result.variance - 5.0/3.0) < 1e-12
+                  && std::abs(result.stddev - std::sqrt(5.0/3.0)) < 1e-12,
+                  "summary of even samples with sample dispersion");
+    });
+    suite.add("summary columns and CLI selection", [](Context& ctx) {
+        ctx.prove(default_summary_fields() ==
+                  SummaryFields({SummaryField::Minimum,SummaryField::Maximum,
+                                 SummaryField::Mean,SummaryField::MAD}),
+                  "default summary columns and order");
+        ctx.prove(parse_summary_fields(" stddev, min , count ") ==
+                  SummaryFields({SummaryField::Stddev,SummaryField::Minimum,
+                                 SummaryField::Count}),
+                  "custom order preserved");
+        for (std::string const& invalid : {"", "min,", ",max", "min,,max",
+                                           "median,median", "unknown"}) {
+            bool rejected = false;
+            try { (void)parse_summary_fields(invalid); }
+            catch (std::invalid_argument const&) { rejected = true; }
+            ctx.prove(rejected, "invalid or duplicate column rejected");
+        }
+        CommandLine cli;
+        Ariadne::List<Ariadne::String> args;
+        args.append(Ariadne::String("test_benchmarking"));
+        args.append(Ariadne::String("--summary"));
+        args.append(Ariadne::String("max,mean,variance,stddev"));
+        bool const accepted = cli.acquire(args);
+        ctx.prove(accepted && cli.summary_fields() ==
+                  SummaryFields({SummaryField::Maximum,SummaryField::Mean,
+                                 SummaryField::Variance,SummaryField::Stddev}),
+                  "CLI applies a custom summary column selection");
+    });
+    suite.add("report output and single sample dispersion", [](Context& ctx) {
+        Samples samples;
+        samples.add(10.0);
+        auto const stats = summarize(samples);
+        ctx.prove(std::isnan(stats.variance) && std::isnan(stats.stddev),
+                  "single sample dispersion is undefined");
+        Report defaults("Default");
+        defaults.add("one", "operation", stats);
+        std::string const header = defaults.table().substr(
+            0u, defaults.table().find('\\n'));
+        auto const min_pos = header.find("Min (ns)");
+        auto const max_pos = header.find("Max (ns)");
+        auto const mean_pos = header.find("Mean (ns)");
+        auto const mad_pos = header.find("MAD (ns)");
+        ctx.prove(min_pos != std::string::npos && min_pos < max_pos &&
+                  max_pos < mean_pos && mean_pos < mad_pos &&
+                  header.find("Median (ns)") == std::string::npos,
+                  "default table only prints min max mean MAD in order");
+        Report custom("Custom", parse_summary_fields(
+            "count,stddev,variance,median,p95"));
+        custom.add("one", "operation", stats);
+        std::string const table = custom.table();
+        ctx.prove(table.find("Variance (ns^2)") != std::string::npos &&
+                  table.find("Stddev (ns)") != std::string::npos &&
+                  table.find("n/a") != std::string::npos &&
+                  table.find("Median (ns)") != std::string::npos,
+                  "custom report labels and undefined dispersion rendered");
+    });
+    suite.add("stable sample dispersion", [](Context& ctx) {
+        Samples samples;
+        samples.add(1000000001.0);
+        samples.add(1000000002.0);
+        samples.add(1000000003.0);
+        auto const stats = summarize(samples);
+        ctx.prove(stats.mean == 1000000002.0 &&
+                  std::abs(stats.variance - 1.0) < 1e-12 &&
+                  std::abs(stats.stddev - 1.0) < 1e-12,
+                  "sample variance stable for large offsets");
     });
     suite.add("calibration and ratios", [](Context& ctx) {
         ctx.prove(calibrated_repetitions(10.0, 100.0, 1u, 100u) == 10u,
