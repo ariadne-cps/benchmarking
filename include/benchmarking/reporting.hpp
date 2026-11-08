@@ -3,11 +3,11 @@
 
 #include "benchmarking/statistics.hpp"
 #include "benchmarking/summary_fields.hpp"
+#include "benchmarking/table.hpp"
 #include "logging/logging.hpp"
+
 #include <algorithm>
-#include <cmath>
-#include <iomanip>
-#include <sstream>
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -20,6 +20,10 @@ public:
     explicit Report(std::string title, SummaryFields columns = default_summary_fields())
         : _title(std::move(title)) {
         set_summary_fields(std::move(columns));
+        _dimensions = {
+            {"Configuration", 0u, TableAlignment::Left},
+            {"Operation", 0u, TableAlignment::Left}
+        };
     }
 
     void set_parameter_header(std::string header) {
@@ -27,9 +31,10 @@ public:
     }
 
     void set_summary_fields(SummaryFields fields) {
-        if (fields.empty()) throw std::invalid_argument("summary columns cannot be empty");
+        if (fields.empty())
+            throw std::invalid_argument("summary columns cannot be empty");
         SummaryFields checked;
-        for (SummaryField const field : fields) {
+        for (SummaryField field : fields) {
             (void)summary_field_id(field);
             if (std::find(checked.begin(), checked.end(), field) != checked.end())
                 throw std::invalid_argument("duplicate summary column");
@@ -38,34 +43,56 @@ public:
         _columns = std::move(checked);
     }
 
-    SummaryFields const& summary_fields() const { return _columns; }
-
-    void add(std::string case_name, std::string operation, Statistics result) {
-        _rows.push_back({std::move(case_name), std::move(operation), result});
+    // Use arbitrary descriptive dimensions (e.g. Backend, Operation, Bits).
+    // Their widths and the numeric columns are computed from rendered values.
+    void set_dimension_columns(std::vector<TableColumn> dimensions) {
+        if (dimensions.empty())
+            throw std::invalid_argument("report needs descriptive columns");
+        for (auto const& row : _rows) {
+            if (row.dimensions.size() != dimensions.size())
+                throw std::invalid_argument("existing rows have different dimensions");
+        }
+        _dimensions = std::move(dimensions);
     }
 
-    // Pure formatting is independently testable without redirecting Logger.
-    std::string table() const {
-        std::size_t first_width = std::string("Configuration").size();
-        for (auto const& row : _rows)
-            first_width = std::max(first_width, row.case_name.size());
-        first_width += 2u;
+    void set_table_options(TableOptions options) {
+        _options = std::move(options);
+    }
 
-        std::ostringstream out;
-        out << std::left << std::setw(static_cast<int>(first_width)) << "Configuration"
-            << std::setw(24) << "Operation";
+    SummaryFields const& summary_fields() const { return _columns; }
+
+    // Keep the original Report API for existing benchmark clients.
+    void add(std::string configuration, std::string operation, Statistics result) {
+        add_row({std::move(configuration), std::move(operation)}, result);
+    }
+
+    void add_row(std::vector<std::string> dimensions, Statistics result) {
+        if (dimensions.size() != _dimensions.size())
+            throw std::invalid_argument("incorrect report dimension count");
+        _rows.push_back({std::move(dimensions), result});
+    }
+
+    // Pure formatting, separately testable without changing Logger settings.
+    std::string table() const {
+        std::vector<TableColumn> columns = _dimensions;
         for (SummaryField field : _columns)
-            out << std::right << std::setw(static_cast<int>(column_width(field)))
-                << summary_field_heading(field);
-        for (auto const& row : _rows) {
-            out << '\n' << std::left
-                << std::setw(static_cast<int>(first_width)) << row.case_name
-                << std::setw(24) << row.operation;
-            for (SummaryField field : _columns)
-                out << std::right << std::setw(static_cast<int>(column_width(field)))
-                    << formatted_value(row.result, field);
+            columns.push_back({std::string(summary_field_heading(field)),
+                               0u, TableAlignment::Right});
+
+        TableOptions options = _options;
+        for (auto index : options.group_columns) {
+            if (index >= _dimensions.size())
+                throw std::invalid_argument("report grouping needs a dimension");
         }
-        return out.str();
+
+        Table table(std::move(columns), std::move(options));
+        for (auto const& row : _rows) {
+            std::vector<std::string> cells = row.dimensions;
+            for (SummaryField field : _columns)
+                cells.push_back(formatted_value(row.result, field));
+            table.add_row(std::move(cells));
+        }
+        return table.str();
     }
 
     void print() const {
@@ -77,16 +104,9 @@ public:
 
 private:
     struct Row {
-        std::string case_name;
-        std::string operation;
+        std::vector<std::string> dimensions;
         Statistics result;
     };
-
-    static std::size_t column_width(SummaryField field) {
-        return std::max<std::size_t>(
-            field == SummaryField::Count ? 8u : 14u,
-            summary_field_heading(field).size() + 2u);
-    }
 
     static std::string formatted_value(Statistics const& stats, SummaryField field) {
         if (field == SummaryField::Count) return std::to_string(stats.count);
@@ -103,18 +123,17 @@ private:
             case SummaryField::Count: break;
             default: throw std::invalid_argument("unknown summary field");
         }
-        // Sample variance is undefined with fewer than two measurements.
-        if (not std::isfinite(value)) return "n/a";
-        std::ostringstream formatted;
-        formatted << std::fixed << std::setprecision(3) << value;
-        return formatted.str();
+        return Table::number(value);
     }
 
     std::string _title;
     std::string _parameter_header;
     SummaryFields _columns;
+    std::vector<TableColumn> _dimensions;
+    TableOptions _options;
     std::vector<Row> _rows;
 };
+
 } // namespace Ariadne::Benchmarking
 
 #endif

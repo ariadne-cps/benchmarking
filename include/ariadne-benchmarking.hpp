@@ -12,6 +12,7 @@
 #include "benchmarking/calibration.hpp"
 #include "benchmarking/comparison.hpp"
 #include "benchmarking/summary_fields.hpp"
+#include "benchmarking/table.hpp"
 #include "benchmarking/reporting.hpp"
 #include "benchmarking/optimization_barrier.hpp"
 
