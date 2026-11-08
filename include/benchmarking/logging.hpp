@@ -10,7 +10,7 @@ namespace Ariadne::Benchmarking {
 // ThreadManager first, so its real thread registry is already attached.
 class SingleThreadRegistry final : public ThreadRegistryInterface {
 public:
-    Bool has_threads_registered() const override { return false; }
+    bool has_threads_registered() const override { return false; }
 };
 
 inline void initialize_logging() {
