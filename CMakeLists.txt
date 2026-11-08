@@ -27,6 +27,15 @@ if(NOT TARGET benchmarking)
     target_link_libraries(benchmarking INTERFACE logging)
 endif()
 
+# The target and the root-scope registration API are owned by Benchmarking.
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/BenchmarkingSupport.cmake")
+if(NOT TARGET benchmarks)
+    add_custom_target(benchmarks)
+endif()
+if(TARGET everything)
+    add_dependencies(everything benchmarks)
+endif()
+
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     # A standalone test-only archive bundles the Logging/Utility object files.
     # It is NOT exported, installed, or linked into consumers' production code.
@@ -52,17 +61,3 @@ else()
     target_link_libraries(ariadne-benchmarking INTERFACE benchmarking)
 endif()
 
-# The common 'benchmarks' aggregate belongs to this repository, not Build.
-if(NOT TARGET benchmarks)
-    add_custom_target(benchmarks)
-endif()
-if(TARGET everything)
-    add_dependencies(everything benchmarks)
-endif()
-# The top-level owner keeps its existing benchmarks/ sources. No standalone
-# benchmarks/ directory is created inside the Benchmarking repository.
-if(NOT CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR
-   AND EXISTS "${CMAKE_SOURCE_DIR}/benchmarks/CMakeLists.txt")
-    add_subdirectory("${CMAKE_SOURCE_DIR}/benchmarks"
-                     "${CMAKE_BINARY_DIR}/benchmarks" EXCLUDE_FROM_ALL)
-endif()
