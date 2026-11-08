@@ -1,3 +1,31 @@
+/***************************************************************************
+ *            benchmarking/parameters.hpp
+ *
+ *  Copyright  2026  Luca Geretti
+ *
+ ****************************************************************************/
+
+/*
+ *  This file is part of Ariadne.
+ *
+ *  Ariadne is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Ariadne is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*! \file benchmarking/parameters.hpp
+ *  \brief Typed command-line axes and lazy benchmark configuration matrices.
+ */
+
 #ifndef ARIADNE_BENCHMARKING_PARAMETERS_HPP
 #define ARIADNE_BENCHMARKING_PARAMETERS_HPP
 
@@ -101,8 +129,10 @@ inline std::string quote_if_needed(std::string const& text) {
 }
 } // namespace detail
 
+//! Polymorphic non-owning interface for one named experiment axis.
 class ParameterBase {
 public:
+    //! Construct an axis with a name and command-line help description.
     explicit ParameterBase(std::string name, std::string description)
         : _name(std::move(name)), _description(std::move(description)) {
         if (_name.empty())
@@ -112,10 +142,15 @@ public:
     ParameterBase(ParameterBase const&) = delete;
     ParameterBase& operator=(ParameterBase const&) = delete;
 
+    //! Return the axis name.
     std::string const& name() const { return _name; }
+    //! Return the axis description shown in CLI help.
     std::string const& description() const { return _description; }
+    //! Return the number of values on this axis.
     virtual std::size_t size() const = 0;
+    //! Format one value for configuration labels.
     virtual std::string display_at(std::size_t index) const = 0;
+    //! Create the argument parser for this axis.
     virtual ArgumentParser make_parser() = 0;
 
 private:
@@ -126,11 +161,14 @@ private:
 // Every extra benchmark parameter accepts a scalar OR an ordered list.
 // The parameter object must outlive the CLI acquisition and matrix iteration.
 template<class T>
+//! Hold an ordered set of typed parameter values, including duplicates.
+//! Accept a scalar or comma-separated sequence through the command line.
 class Parameter final : public ParameterBase {
 public:
     using Parser = std::function<T(std::string const&)>;
     using Formatter = std::function<std::string(T const&)>;
 
+    //! Construct a typed axis with nonempty defaults and optional conversion functions.
     Parameter(std::string name, std::string description, std::vector<T> defaults,
               Parser parser = detail::parse_value<T>,
               Formatter formatter = detail::format_value<T>)
@@ -142,12 +180,15 @@ public:
     }
 
     std::size_t size() const override { return _values.size(); }
+    //! Access the value at one index.
     T const& at(std::size_t index) const { return _values.at(index); }
+    //! Return all configured values in order, with duplicates preserved.
     std::vector<T> const& values() const { return _values; }
     std::string display_at(std::size_t index) const override {
         return detail::quote_if_needed(_format(at(index)));
     }
 
+    //! Parse and validate an entire replacement sequence before committing it.
     ArgumentParser make_parser() override {
         return make_valued_argument_parser(
             "", String(name()),
@@ -169,18 +210,24 @@ private:
     Formatter _format;
 };
 
+//! One concrete combination of parameter positions with a one-based ordinal.
 class Configuration {
 public:
+    //! Capture axis references and selected indices for this configuration.
     Configuration(std::vector<ParameterBase const*> axes,
                   std::vector<std::size_t> indices,
                   std::size_t ordinal, std::size_t count)
         : _axes(std::move(axes)), _indices(std::move(indices)),
           _ordinal(ordinal), _count(count) {}
 
+    //! Return this configuration's one-based ordinal.
     std::size_t ordinal() const { return _ordinal; }
+    //! Return the number of configurations in the matrix.
     std::size_t count() const { return _count; }
 
     template<class T>
+    //! Return the selected value of a registered typed parameter.
+    //! @throws std::invalid_argument when the axis is absent.
     T const& value(Parameter<T> const& axis) const {
         for (std::size_t i = 0; i < _axes.size(); ++i) {
             if (_axes[i] == &axis) return axis.at(_indices[i]);
@@ -188,6 +235,7 @@ public:
         throw std::invalid_argument("parameter does not belong to the matrix");
     }
 
+    //! Return named, formatted values in axis registration order.
     std::vector<std::pair<std::string, std::string>> dimensions() const {
         std::vector<std::pair<std::string, std::string>> result;
         result.reserve(_axes.size());
@@ -196,6 +244,7 @@ public:
         return result;
     }
 
+    //! Produce a human-readable label listing selected axis values.
     std::string label() const {
         std::ostringstream out;
         for (std::size_t i = 0; i < _axes.size(); ++i) {
@@ -214,8 +263,11 @@ private:
 
 // Non-owning registration: the last axis varies fastest. Iteration is lazy,
 // so even a large Cartesian product is never materialized in memory.
+//! Lazily iterate a Cartesian product of non-owned typed parameter axes.
+//! The last axis varies fastest; an empty matrix denotes one configuration.
 class Matrix {
 public:
+    //! Register a uniquely named live axis without taking ownership.
     Matrix& add(ParameterBase& axis) {
         for (auto const* present : _axes) {
             if (present == &axis or present->name() == axis.name())
@@ -225,6 +277,8 @@ public:
         return *this;
     }
 
+    //! Compute the number of cases without materializing them.
+    //! @throws std::overflow_error when the Cartesian size overflows.
     std::size_t combinations() const {
         std::size_t count = 1u;
         for (auto const* axis : _axes) {
@@ -236,12 +290,14 @@ public:
         return count;
     }
 
+    //! Return parsers used to expose matrix axes in CommandLine.
     List<ArgumentParser> parsers() {
         List<ArgumentParser> result;
         for (auto* axis : _axes) result.append(axis->make_parser());
         return result;
     }
 
+    //! Describe every axis sequence and the total number of configurations.
     std::string header() const {
         std::ostringstream out;
         out << "Parameters: ";
@@ -260,6 +316,7 @@ public:
     }
 
     template<class Function>
+    //! Visit each combination lazily, passing a temporary Configuration.
     void for_each(Function&& callback) const {
         std::size_t const total = combinations();
         std::vector<std::size_t> positions(_axes.size(), 0u);

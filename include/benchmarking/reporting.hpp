@@ -1,3 +1,31 @@
+/***************************************************************************
+ *            benchmarking/reporting.hpp
+ *
+ *  Copyright  2026  Luca Geretti
+ *
+ ****************************************************************************/
+
+/*
+ *  This file is part of Ariadne.
+ *
+ *  Ariadne is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Ariadne is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*! \file benchmarking/reporting.hpp
+ *  \brief Generate summary tables from measured benchmark statistics.
+ */
+
 #ifndef ARIADNE_BENCHMARKING_REPORTING_HPP
 #define ARIADNE_BENCHMARKING_REPORTING_HPP
 
@@ -15,8 +43,11 @@
 
 namespace Ariadne::Benchmarking {
 
+//! Own statistics rows and render configurable adaptive-width summary tables.
+//! Formatting is separate from timing.
 class Report {
 public:
+    //! Construct a named report with a selected ordered set of statistic columns.
     explicit Report(std::string title, SummaryFields columns = default_summary_fields())
         : _title(std::move(title)) {
         set_summary_fields(std::move(columns));
@@ -26,10 +57,12 @@ public:
         };
     }
 
+    //! Set the optional parameter description line printed above the table.
     void set_parameter_header(std::string header) {
         _parameter_header = std::move(header);
     }
 
+    //! Select distinct, nonempty statistic columns in display order.
     void set_summary_fields(SummaryFields fields) {
         if (fields.empty())
             throw std::invalid_argument("summary columns cannot be empty");
@@ -45,6 +78,7 @@ public:
 
     // Use arbitrary descriptive dimensions (e.g. Backend, Operation, Bits).
     // Their widths and the numeric columns are computed from rendered values.
+    //! Configure descriptive columns; existing row widths must agree.
     void set_dimension_columns(std::vector<TableColumn> dimensions) {
         if (dimensions.empty())
             throw std::invalid_argument("report needs descriptive columns");
@@ -55,17 +89,21 @@ public:
         _dimensions = std::move(dimensions);
     }
 
+    //! Set grouping, separators and optional table rules.
     void set_table_options(TableOptions options) {
         _options = std::move(options);
     }
 
+    //! Return the ordered selected statistics fields.
     SummaryFields const& summary_fields() const { return _columns; }
 
     // Keep the original Report API for existing benchmark clients.
+    //! Append a row through the legacy configuration/operation API.
     void add(std::string configuration, std::string operation, Statistics result) {
         add_row({std::move(configuration), std::move(operation)}, result);
     }
 
+    //! Append statistics with one value per descriptive dimension.
     void add_row(std::vector<std::string> dimensions, Statistics result) {
         if (dimensions.size() != _dimensions.size())
             throw std::invalid_argument("incorrect report dimension count");
@@ -73,6 +111,7 @@ public:
     }
 
     // Pure formatting, separately testable without changing Logger settings.
+    //! Render the report as a string without altering logger settings.
     std::string table() const {
         std::vector<TableColumn> columns = _dimensions;
         for (SummaryField field : _columns)
@@ -95,6 +134,7 @@ public:
         return table.str();
     }
 
+    //! Log the report title, optional parameter header and table.
     void print() const {
         LOGGING_PRINTLN_AT(1, _title)
         if (not _parameter_header.empty())
