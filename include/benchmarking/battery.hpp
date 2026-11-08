@@ -42,7 +42,7 @@ public:
         std::size_t index = 0u;
         // Workload is invoked separately for each concrete implementation.
         (run_one<Implementations>(_names[index++], context,
-                                  runner, samples, workload), ...);
+                                  runner, samples, configuration, workload), ...);
         runner.configuration_completed(configuration);
     }
 
@@ -57,7 +57,8 @@ public:
 private:
     template<class Implementation, class Workload>
     void run_one(std::string const& name, ComparisonContext const& context,
-                 Runner const& runner, unsigned samples, Workload& workload) {
+                 Runner const& runner, unsigned samples,
+                 Configuration const& configuration, Workload& workload) {
         bool registered = false;
         auto record = [&](std::string operation_name,
                           auto&& prepare, auto&& operation, auto&& verify,
@@ -70,7 +71,15 @@ private:
             _results.add(name, std::move(operation_name), context, values);
             registered = true;
         };
-        workload.template operator()<Implementation>(record);
+        // Configuration-aware workloads are preferred. A one-argument
+        // workload remains useful for fixed-input microbenchmarks.
+        if constexpr (requires {
+            workload.template operator()<Implementation>(configuration, record);
+        }) {
+            workload.template operator()<Implementation>(configuration, record);
+        } else {
+            workload.template operator()<Implementation>(record);
+        }
         if (not registered)
             throw std::invalid_argument("implementation has no registered operations");
     }
