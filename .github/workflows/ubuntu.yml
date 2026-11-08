@@ -89,7 +89,7 @@ jobs:
         run: |
           file="${{ runner.workspace }}/build/ctest-debug.log"
           # Publish a compact failed test line instead of the generic CTest exit code.
-          line="$(grep -Ei 'FAILED|assertion|fail:|error:' "$file" | grep -v 'tests failed' | head -n 1 || true)"
+          line="$(grep -Ei '(^|[[:space:]])(FAIL:|ERROR:)|\[FAIL [0-9]|\[ERROR [0-9]' "$file" | head -n 1 || true)"
           if [ -z "$line" ]; then line="$(tail -n 2 "$file" | head -n 1)"; fi
           message="$(printf '%s' "$line" | cut -c 1-130)"
           payload="$(jq -n --arg m "$message" '{"state":"failure","context":"benchmarking/test-diagnostic","description":$m}')"
