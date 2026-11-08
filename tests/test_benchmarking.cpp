@@ -73,7 +73,7 @@ int main() {
                   "Cartesian product order");
         ctx.prove(detail::quote_if_needed("backend") == "backend" &&
                   detail::quote_if_needed("fast") == "fast" &&
-                  detail::quote_if_needed("hello world") == "\\"hello world\\"",
+                  detail::quote_if_needed("hello world") == std::string(1, '"') + "hello world" + '"',
                   "quote only separators and whitespace");
         ctx.prove(matrix.header() ==
                   "Parameters: size=[2, 4]; backend=[fast, slow] | configurations=4",
