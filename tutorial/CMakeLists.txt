@@ -1,2 +1,5 @@
 add_executable(tutorial_benchmarking tutorial_benchmarking.cpp)
 target_link_libraries(tutorial_benchmarking PRIVATE ariadne-benchmarking)
+
+add_executable(tutorial_comparison tutorial_comparison.cpp)
+target_link_libraries(tutorial_comparison PRIVATE ariadne-benchmarking)
