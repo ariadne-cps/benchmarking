@@ -84,7 +84,7 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        line="$(grep -E -m1 'error:|ERROR:|CMake Error|FAILED:|Error [0-9]' coverage-build.log || true)"
+        line="$(grep -Ei 'geninfo: ERROR|lcov: ERROR|genhtml: ERROR|error:|ERROR:|no data|failed to|cannot|undefined reference' coverage-build.log | grep -v '^FAILED:' | tail -n 1 || true)"
         if [ -z "$line" ]; then line="$(tail -n 1 coverage-build.log)"; fi
         description="$(printf '%s' "$line" | cut -c 1-130)"
         payload="$(jq -n --arg message "$description" '{"state":"failure","context":"benchmarking/coverage-diagnostic","description":$message}')"
