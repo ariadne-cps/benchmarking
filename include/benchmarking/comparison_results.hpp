@@ -202,10 +202,12 @@ public:
             if (position == positions.end()) {
                 std::size_t const index = groups.size();
                 positions.emplace(key, index);
-                groups.push_back({AggregateRow{
-                    reference, pair.candidate,
-                    by_configuration ? pair.context.label : "all"
-                }});
+                Accumulation group{};
+                group.row.reference = reference;
+                group.row.candidate = pair.candidate;
+                group.row.configuration = by_configuration
+                    ? pair.context.label : "all";
+                groups.push_back(std::move(group));
                 position = positions.find(key);
             }
             Accumulation& group = groups[position->second];
