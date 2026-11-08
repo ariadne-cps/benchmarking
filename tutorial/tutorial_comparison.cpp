@@ -5,75 +5,45 @@
 using namespace Ariadne;
 namespace Bench = Ariadne::Benchmarking;
 
-// Synthetic equivalent functions. The tutorial demonstrates the API, not
-// measured performance differences between real libraries.
+// Two semantically equivalent implementations of the same operation.
 struct VariantA {
     static unsigned increment(unsigned value) { return value + 1u; }
 };
 struct VariantB {
     static unsigned increment(unsigned value) { return 1u + value; }
 };
-struct VariantC {
-    static unsigned increment(unsigned value) { return value - (~0u); }
-};
 
 int main(int argc, char const* argv[]) {
-    Bench::Parameter<unsigned> lengths("lengths","Workload lengths",{16u,64u});
-    Bench::Matrix matrix;
-    matrix.add(lengths);
     Bench::CommandLine cli;
-    cli.add_parameters(matrix);
-    if (not cli.acquire(Bench::arguments(argc,argv))) return 0;
+    if (not cli.acquire(Bench::arguments(argc, argv))) return 0;
 
-    Bench::Runner runner(cli,matrix.combinations());
-    Bench::ComparisonBattery<VariantA,VariantB,VariantC>
-        battery({"A","B","C"});
+    Bench::Matrix matrix;  // One fixed configuration.
+    Bench::Runner runner(cli);
+    Bench::ComparisonBattery<VariantA, VariantB> battery({"A", "B"});
 
-    // The workload is instantiated once per concrete implementation type
-    // and receives each current configuration (no virtual timed operation).
-    auto workload = [&]<class Implementation>(
-            Bench::Configuration const& config, auto&& record) {
-        unsigned const length = config.value(lengths);
+    // The workload is compiled separately for each concrete implementation.
+    auto workload = []<class Implementation>(auto&& record) {
         unsigned value = 0u;
         record("increment",
             [&] { value = 0u; },
             [&] {
-                for (unsigned i = 0u; i < length; ++i) {
+                for (unsigned i = 0u; i < 1000u; ++i) {
                     value = Implementation::increment(value);
                     Bench::keep_alive(value);
                 }
             },
             [&] {
-                if (value != length)
+                if (value != 1000u)
                     throw std::runtime_error("incorrect increment result");
-            }, static_cast<double>(length));
-        record("increment_twice",
-            [&] { value = 0u; },
-            [&] {
-                for (unsigned i = 0u; i < length; ++i) {
-                    value = Implementation::increment(
-                        Implementation::increment(value));
-                    Bench::keep_alive(value);
-                }
             },
-            [&] {
-                if (value != 2u * length)
-                    throw std::runtime_error("incorrect doubled increment");
-            }, static_cast<double>(length));
+            1000.0);
     };
-    battery.run(matrix,runner,3u,workload);
+    battery.run(matrix, runner, 5u, workload);
 
+    // A single paired report makes the A/B comparison clear.
     Bench::ComparisonReports reports;
-    reports.add({"timings",Bench::ComparisonReportKind::Measurements,
-                 {"implementation","operation","param:lengths","min","mean","mad"}});
-    reports.add({"pairs",Bench::ComparisonReportKind::Pairs,
-                 {"candidate","operation","param:lengths",
-                  "reference_ns","candidate_ns","slowdown"}});
-    Bench::ComparisonReportDefinition total{"overall",
-        Bench::ComparisonReportKind::Aggregates,
-        {"candidate","operations","geomean","total_time","worst"}};
-    total.by_configuration = false;
-    reports.add(total);
-    reports.print_all(battery.results(),"A");
+    reports.add({"A/B", Bench::ComparisonReportKind::Pairs,
+                 {"operation", "reference_ns", "candidate_ns", "slowdown"}});
+    reports.print_all(battery.results(), "A");
     return 0;
 }
