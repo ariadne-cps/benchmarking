@@ -1,5 +1,5 @@
-# Only runtime support: Logging (and its Utility dependency).
-# Testing is independently initialized for the standalone tests.
-if(NOT TARGET logging)
-    ariadne_add_submodule(logging)
+# Threading supplies Logging and Utility transitively.
+# Testing is separately initialized for standalone tests.
+if(NOT TARGET threading)
+    ariadne_add_submodule(threading)
 endif()

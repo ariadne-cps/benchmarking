@@ -45,6 +45,16 @@ int main() {
         catch (std::invalid_argument const&) { rejected = true; }
         ctx.prove(rejected, "negative timings rejected");
     });
+    suite.add("threading command line", [](Context& ctx) {
+        CommandLine cli;
+        List<Ariadne::String> args;
+        args.append(Ariadne::String("test_benchmarking"));
+        args.append(Ariadne::String("--concurrency"));
+        args.append(Ariadne::String("0"));
+        bool const acquired = cli.acquire(args);
+        ctx.prove(acquired and Ariadne::ThreadManager::instance().concurrency() == 0u,
+                  "Threading CLI applies concurrency");
+    });
     suite.add("timing boundaries", [](Context& ctx) {
         int invocations = 0;
         double const elapsed = measure_ns([&] { ++invocations; });

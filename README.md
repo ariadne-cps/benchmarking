@@ -14,8 +14,8 @@ remains in its owning repository.** See the
 
 ## Capabilities
 
-- **Logging and CLI:** reuse Ariadne Logging's command-line interface, with
-  strict unsigned parsing, list parsing and single-thread Logger initialization.
+- **Threading CLI:** inherit `ThreadingCommandLineInterface` and its
+  `--concurrency N|max` support, Logging options and command-line parsing.
 - **Time measurement:** steady-clock nanosecond/millisecond timing with explicit
   user-controlled setup, measurement and verification boundaries.
 - **Samples and statistics:** elapsed samples, mean, median (including even
@@ -31,12 +31,13 @@ sample ordering, or semantic checks. Those remain explicit in the caller.
 
 ## Dependencies
 
-Production support uses [Logging](https://github.com/ariadne-cps/logging)
-(and its transitive [Utility](https://github.com/ariadne-cps/utility)).
+Benchmark support uses [Threading](https://github.com/ariadne-cps/threading),
+which includes [Logging](https://github.com/ariadne-cps/logging) and
+[Utility](https://github.com/ariadne-cps/utility) transitively.
 [Build](https://github.com/ariadne-cps/build) supplies CMake infrastructure.
 [Testing](https://github.com/ariadne-cps/testing) is required only by standalone
 tests. No other Ariadne application module is required. Pinned gitlinks are
-under `ss/bui`, `ss/log`, and `ss/tst`.
+under `ss/bui`, `ss/thr`, and `ss/tst`.
 
 **Benchmarking and Testing are independent opt-in development dependencies.**
 Benchmarking is not linked to production libraries, not installed and not part
@@ -49,7 +50,7 @@ Testing and Benchmarking gitlinks from cross-module commit-consistency checks.
 - `include/benchmarking/`: reusable benchmark tools.
 - `tests/`: isolated, semantic tests of the tools.
 - `tutorial/`: a maintained, buildable C++ benchmark tutorial.
-- `ss/`: pinned Build, Logging, Testing submodules.
+- `ss/`: pinned Build, Threading, Testing submodules.
 - There is deliberately **no `benchmarks/` directory** in this repository.
 
 ## Build and test
@@ -70,7 +71,8 @@ cmake --build build-release --target tutorial_benchmark
 ./build-release/tutorial/tutorial_benchmark --iterations 1000 --samples 7 --warmups 2
 ```
 
-The tutorial illustrates input preparation outside the timed region, one
+The tutorial illustrates `--concurrency` configuration, input preparation
+outside the timed region, one
 explicit measured operation, post-timing checksum verification, warm-up
 exclusion, statistics and Logging-based reporting. Keep it updated whenever
 the public API changes.

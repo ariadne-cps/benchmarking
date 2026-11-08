@@ -2,7 +2,7 @@
 #define ARIADNE_BENCHMARKING_COMMAND_LINE_HPP
 
 #include "benchmarking/logging.hpp"
-#include "logging/logging_command_line_interface.hpp"
+#include "threading/threading_command_line_interface.hpp"
 #include "utility/command_line_interface.hpp"
 
 #include <algorithm>
@@ -53,7 +53,7 @@ inline List<String> arguments(int argc, char const* argv[]) {
     return result;
 }
 
-class CommandLine : public LoggingCommandLineInterface {
+class CommandLine : public ThreadingCommandLineInterface {
 public:
     CommandLine() { initialize_logging(); }
 };

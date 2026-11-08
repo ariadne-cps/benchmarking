@@ -4,7 +4,8 @@
 benchmark. It is built only by the explicit `tutorial_benchmark` target.
 It demonstrates a procedural workflow:
 
-1. Parse validated CLI options and initialize the Logger.
+1. Parse validated CLI options including `--concurrency`, initializing
+   the Logger through ThreadManager.
 2. Prepare deterministic inputs outside the measurement.
 3. Time exactly one intended operation with `measure_ns`.
 4. Validate the result outside the timed region.

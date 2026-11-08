@@ -2,24 +2,15 @@
 #define ARIADNE_BENCHMARKING_LOGGING_HPP
 
 #include "logging/logging.hpp"
-#include "logging/thread_registry_interface.hpp"
+#include "threading/thread_manager.hpp"
 
 namespace Ariadne::Benchmarking {
 
-// Single-threaded fallback only. Threading-owned benchmarks must initialize
-// ThreadManager first, so its real thread registry is already attached.
-class SingleThreadRegistry final : public ThreadRegistryInterface {
-public:
-    bool has_threads_registered() const override { return false; }
-};
-
+// ThreadManager owns the real Logger thread registry; never attach a
+// synthetic single-thread registry that could conceal active workers.
 inline void initialize_logging() {
-    static SingleThreadRegistry registry;
-    Logger& logger = Logger::instance();
-    if (not logger.has_thread_registry_attached()) {
-        logger.attach_thread_registry(&registry);
-    }
-    logger.configuration().set_verbosity(1u);
+    ThreadManager::instance();
+    Logger::instance().configuration().set_verbosity(1u);
 }
 } // namespace Ariadne::Benchmarking
 

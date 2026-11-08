@@ -32,6 +32,9 @@ int main(int argc, char const* argv[]) {
         cli.add(CommandLineContribution("tutorial-benchmark", options));
         if (not cli.acquire(Bench::arguments(argc, argv))) return 0;
 
+        // Concurrency is configured by the shared Threading CLI.
+        LOGGING_PRINTLN("concurrency=" << ThreadManager::instance().concurrency())
+
         // 1. Construct the deterministic input outside timed loops.
         std::vector<std::uint64_t> data(256u);
         for (std::size_t i = 0; i < data.size(); ++i)
