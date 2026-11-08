@@ -1,42 +1,54 @@
-# C++ benchmarking tutorial
+# C++ tutorials
 
-The maintained `tutorial_benchmarking.cpp` demonstrates parameter sequences,
-Cartesian combinations and progressively detailed Logging.
+The tutorials are intentionally progressive: first an ordinary benchmark,
+then a minimal A/B comparison. Both are explicit CMake targets excluded from
+the ordinary production build and the aggregate `benchmarks` target.
+
+## 1. Standalone benchmark: `tutorial_benchmarking`
+
+Source: [tutorial_benchmarking.cpp](tutorial_benchmarking.cpp).
 
 ```sh
 cmake --build build-release --target tutorial_benchmarking
-./build-release/tutorial/tutorial_benchmarking --lengths 64,256 --iterations 100,300 --samples 3 --warmups 1 --concurrency 0 --verbosity 4
+./build-release/tutorial/tutorial_benchmarking --lengths 64,256 --iterations 100,300 --samples 3 --warmups 1 --concurrency 0 --verbosity 4 --summary min,max,mean,mad
 ```
 
-All benchmark-specific arguments accept either a scalar or a comma-separated
-list; duplicates are preserved and the final registered axis varies fastest.
-Global `--concurrency`, `--warmups` and Logging options are not experiment axes.
+This first example deliberately demonstrates the richer framework features:
+typed parameter sequences and their Cartesian product, global Threading CLI
+options, Runner-managed warm-ups, separate preparation/timing/verification,
+selectable summary statistics, dynamic-width report columns, numeric alignment,
+table rules and configuration grouping.
 
-Verbosity 0: silent. Verbosity 1: sequences and overall results. Verbosity
-2: matrix configuration start/complete (or execution start/complete for a
-single configuration). Verbosity 3: matrix execution start/complete (or
-measurements for a single configuration). Verbosity 4: individual matrix
-measurements. The measurement loop itself does not log.
+Every extra benchmark argument accepts one value or a comma-separated ordered
+list; duplicates are retained, with the last registered axis changing fastest.
+Warm-ups default to zero and do not contribute to the measured samples. The
+default `--summary` selection is `min,max,mean,mad`, with `median,p95,stddev,
+variance,count` also available. Columns are sized using their longest
+fully formatted values.
 
-`Runner` performs all warm-ups before measured samples in each configuration,
-with `--warmups 0` as the default. Each warm-up calls the same prepare,
-operation and verify callbacks as measured rounds; it never contributes to
-statistics. Each benchmark supplies those three callbacks, not its own
-warm-up loop. The tutorial keeps input construction outside all timed scopes.
+Verbosity 0 suppresses benchmark messages. Verbosity 1 prints the parameter
+sequences and final summary; 2 adds configuration lifecycle events in a matrix;
+3 adds execution lifecycle events; 4 adds individual sample timings. With a
+single configuration, execution and measurement details each move one level
+closer to the summary.
 
-## Selecting summary columns
+## 2. Minimal comparison: `tutorial_comparison`
 
-Use `--summary min,max,mean,mad` (the default) or a comma-separated
-selection such as `--summary median,mad,stddev,p95,count`. The output
-preserves the requested column order. Available names are `min`, `max`,
-`mean`, `mad`, `median`, `p95`, `stddev`, `variance`, and `count`.
+Source: [tutorial_comparison.cpp](tutorial_comparison.cpp).
 
-All timing columns are in nanoseconds except `variance`, which is in
-squared nanoseconds. Variance and standard deviation are sample estimates
-(denominator N-1). For a single sample these fields display `n/a`, not zero.
-The tutorial passes `cli.summary_fields()` to the `Report` constructor;
-`--summary` only controls the final summary columns, not log verbosity,
-sampling or benchmark parameter axes.
+```sh
+cmake --build build-release --target tutorial_comparison
+./build-release/tutorial/tutorial_comparison --verbosity 1
+```
 
-For a benchmark with two warm-ups per configuration, pass `--warmups 2`.
-Omit the option to disable warm-ups entirely.
+Only the essential A/B concepts appear here: two concrete implementation types
+(`VariantA` and `VariantB`), one equivalent operation, one fixed configuration,
+one reference (`A`) and a single paired report showing the candidate/reference
+slowdown. The templated workload compiles separately for both implementations,
+with no virtual dispatch inside the timed operation. Values above one mean
+the candidate is slower.
+
+More advanced N-way comparisons, multiple operations, parameter matrices and
+independently configured measurement/pair/aggregate reports are supported by
+the framework and tested separately. They do not complicate the introductory
+A/B tutorial.

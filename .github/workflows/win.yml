@@ -62,6 +62,8 @@ jobs:
         run: |
           cmake --build build --target tutorial_benchmarking
           .\\build\\tutorial\\tutorial_benchmarking.exe --lengths 32,64 --iterations 100,200 --samples 3 --warmups 1 --verbosity 4
+          cmake --build build --target tutorial_comparison
+          .\\build\\tutorial\\tutorial_comparison.exe --verbosity 1
 
 
       - name: Build Debug tests
