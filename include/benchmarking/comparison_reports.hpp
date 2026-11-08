@@ -25,6 +25,12 @@ struct ComparisonReportDefinition {
     SummaryField metric = SummaryField::Median;
     // For aggregates: false gives one aggregate per candidate over all cases.
     bool by_configuration = true;
+
+    ComparisonReportDefinition(std::string report_name,
+                               ComparisonReportKind report_kind,
+                               std::vector<std::string> selected_columns)
+        : name(std::move(report_name)), kind(report_kind),
+          columns(std::move(selected_columns)) {}
 };
 
 // Multiple report definitions may render the *same* benchmark results with
