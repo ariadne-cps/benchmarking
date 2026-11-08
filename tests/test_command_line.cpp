@@ -80,15 +80,16 @@ public:
                                  SummaryField::Variance,SummaryField::Stddev}));
     }
 
-    void test_threading_command_line() {
+    void test_logging_without_threading() {
         CommandLine cli;
         Ariadne::List<Ariadne::String> args;
         args.append(Ariadne::String("test_benchmarking"));
-        args.append(Ariadne::String("--concurrency"));
-        args.append(Ariadne::String("0"));
+        args.append(Ariadne::String("--scheduler"));
+        args.append(Ariadne::String("blocking"));
         bool const acquired = cli.acquire(args);
-        // Threading CLI applies concurrency
-        ARIADNE_TESTING_PROVE(acquired and Ariadne::ThreadManager::instance().concurrency() == 0u);
+        ARIADNE_TESTING_PROVE(acquired);
+        ARIADNE_TESTING_PROVE(not Ariadne::Logger::instance().has_thread_registry_attached());
+        Ariadne::Logger::instance().use_nonblocking_scheduler();
     }
 
     void test_global_warmup_cli() {
@@ -116,7 +117,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestCommandLine, test_argument_conversion);
     ARIADNE_TESTING_ADD_TEST(TestCommandLine, test_summary_field_validation);
     ARIADNE_TESTING_ADD_TEST(TestCommandLine, test_summary_columns_and_cli_selection);
-    ARIADNE_TESTING_ADD_TEST(TestCommandLine, test_threading_command_line);
+    ARIADNE_TESTING_ADD_TEST(TestCommandLine, test_logging_without_threading);
     ARIADNE_TESTING_ADD_TEST(TestCommandLine, test_global_warmup_cli);
     return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
 }

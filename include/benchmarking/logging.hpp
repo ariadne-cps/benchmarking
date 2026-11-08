@@ -23,23 +23,18 @@
  */
 
 /*! \file benchmarking/logging.hpp
- *  \brief Initialize benchmark logging against the actual threading registry.
+ *  \brief Initialize benchmark logging without requiring a thread manager.
  */
 
 #ifndef ARIADNE_BENCHMARKING_LOGGING_HPP
 #define ARIADNE_BENCHMARKING_LOGGING_HPP
 
 #include "logging/logging.hpp"
-#include "threading/thread_manager.hpp"
 
 namespace Ariadne::Benchmarking {
 
-// ThreadManager owns the real Logger thread registry; never attach a
-// synthetic single-thread registry that could conceal active workers.
-//! Initialize ThreadManager's logger registry at default verbosity one.
-//! Never replace the real worker registry with an artificial single-thread registry.
+//! Initialize logger verbosity without attaching any thread registry.
 inline void initialize_logging() {
-    ThreadManager::instance();
     Logger::instance().configuration().set_verbosity(1u);
 }
 } // namespace Ariadne::Benchmarking

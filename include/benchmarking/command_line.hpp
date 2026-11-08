@@ -23,7 +23,7 @@
  */
 
 /*! \file benchmarking/command_line.hpp
- *  \brief CLI integration of threading, logging and benchmark options.
+ *  \brief CLI integration of logging and benchmark options.
  */
 
 #ifndef ARIADNE_BENCHMARKING_COMMAND_LINE_HPP
@@ -32,7 +32,7 @@
 #include "benchmarking/logging.hpp"
 #include "benchmarking/parameters.hpp"
 #include "benchmarking/summary_fields.hpp"
-#include "threading/threading_command_line_interface.hpp"
+#include "logging/logging_command_line_interface.hpp"
 #include "utility/command_line_interface.hpp"
 
 #include <algorithm>
@@ -86,8 +86,8 @@ inline List<String> arguments(int argc, char const* argv[]) {
     return result;
 }
 
-//! Support global --summary and --warmups alongside threading and logging settings.
-class CommandLine : public ThreadingCommandLineInterface {
+//! Support global --summary and --warmups alongside logging settings.
+class CommandLine : public LoggingCommandLineInterface {
 public:
     //! Initialize the logger and register benchmark-specific CLI parsers.
     CommandLine() {

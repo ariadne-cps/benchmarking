@@ -14,8 +14,7 @@ remains in its owning repository.** See the
 
 ## Capabilities
 
-- **Threading CLI:** inherit `ThreadingCommandLineInterface` and its
-  `--concurrency N|max` support, Logging options and command-line parsing.
+- **Logging CLI:** scheduler, theme and verbosity options inherited from `LoggingCommandLineInterface`. Threading-specific concurrency can be composed in the owning benchmark executable.
 - **Time measurement:** steady-clock nanosecond/millisecond timing with explicit
   user-controlled setup, measurement and verification boundaries.
 - **Samples and statistics:** elapsed samples, mean, median (including even
@@ -46,13 +45,10 @@ are checked but never included in reported statistics.
 
 ## Dependencies
 
-Benchmark support uses [Threading](https://github.com/ariadne-cps/threading),
-which includes [Logging](https://github.com/ariadne-cps/logging) and
-[Utility](https://github.com/ariadne-cps/utility) transitively.
+Benchmark support uses [Logging](https://github.com/ariadne-cps/logging), which includes [Utility](https://github.com/ariadne-cps/utility) transitively. Benchmarking does not depend on Threading.
 [Build](https://github.com/ariadne-cps/build) supplies CMake infrastructure.
 [Testing](https://github.com/ariadne-cps/testing) is required only by standalone
-tests. No other Ariadne application module is required. Pinned gitlinks are
-under `ss/bui`, `ss/thr`, and `ss/tst`.
+tests. No other Ariadne application module is required. Pinned gitlinks are under `ss/bui`, `ss/log`, and `ss/tst`.
 
 **Benchmarking and Testing are independent opt-in development dependencies.**
 Benchmarking is not linked to production libraries, not installed and not part
@@ -67,7 +63,7 @@ C++ tests use `setup_standalone_project()` as provided by the merged Build mainl
 Benchmarking continues to own its root-scope
 `ariadne_register_project_benchmarks` registration helper and
 remains an independent opt-in benchmarking module. Its pinned
-Build, Threading and Testing submodules are aligned with the
+Build, Logging and Testing submodules are aligned with the
 shared Build revision used across Ariadne, without making
 Benchmarking a runtime dependency of production libraries.
 
@@ -76,7 +72,7 @@ Benchmarking a runtime dependency of production libraries.
 - `include/benchmarking/`: reusable benchmark tools.
 - `tests/`: isolated, semantic tests of the tools.
 - `tutorial/`: one buildable C++ tutorial with an ordinary benchmark followed by A/B.
-- `ss/`: pinned Build, Threading, Testing submodules.
+- `ss/`: pinned Build, Logging, Testing submodules.
 - There is deliberately **no `benchmarks/` directory** in this repository.
 
 ## Build and test
