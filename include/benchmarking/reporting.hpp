@@ -101,6 +101,7 @@ private:
             case SummaryField::Stddev: value = stats.stddev; break;
             case SummaryField::Variance: value = stats.variance; break;
             case SummaryField::Count: break;
+            default: throw std::invalid_argument("unknown summary field");
         }
         // Sample variance is undefined with fewer than two measurements.
         if (not std::isfinite(value)) return "n/a";

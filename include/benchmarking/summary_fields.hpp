@@ -32,6 +32,7 @@ inline std::string_view summary_field_id(SummaryField field) {
         case SummaryField::Stddev: return "stddev";
         case SummaryField::Variance: return "variance";
         case SummaryField::Count: return "count";
+        default: throw std::invalid_argument("unknown summary field");
     }
     throw std::invalid_argument("unknown summary field");
 }
@@ -47,6 +48,7 @@ inline std::string_view summary_field_heading(SummaryField field) {
         case SummaryField::Stddev: return "Stddev (ns)";
         case SummaryField::Variance: return "Variance (ns^2)";
         case SummaryField::Count: return "N";
+        default: throw std::invalid_argument("unknown summary field");
     }
     throw std::invalid_argument("unknown summary field");
 }
