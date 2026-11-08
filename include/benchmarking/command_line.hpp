@@ -3,6 +3,7 @@
 
 #include "benchmarking/logging.hpp"
 #include "benchmarking/parameters.hpp"
+#include "benchmarking/summary_fields.hpp"
 #include "threading/threading_command_line_interface.hpp"
 #include "utility/command_line_interface.hpp"
 
@@ -56,11 +57,30 @@ inline List<String> arguments(int argc, char const* argv[]) {
 
 class CommandLine : public ThreadingCommandLineInterface {
 public:
-    CommandLine() { initialize_logging(); }
+    CommandLine() {
+        initialize_logging();
+        add(CommandLineContribution("benchmarking", {
+            make_valued_argument_parser(
+                "", "summary",
+                "Summary columns in order (default: min,max,mean,mad). "
+                "Available: min,max,mean,mad,median,p95,stddev,variance,count",
+                [this](String const& text) -> VoidFunction {
+                    SummaryFields fields = parse_summary_fields(std::string(text));
+                    return [this, fields = std::move(fields)]() mutable {
+                        _summary_fields = std::move(fields);
+                    };
+                })
+        }));
+    }
+
+    SummaryFields const& summary_fields() const { return _summary_fields; }
 
     void add_parameters(Matrix& matrix) {
         add(CommandLineContribution("benchmark-parameters", matrix.parsers()));
     }
+
+private:
+    SummaryFields _summary_fields = default_summary_fields();
 };
 } // namespace Ariadne::Benchmarking
 

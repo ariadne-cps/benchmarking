@@ -19,14 +19,17 @@ remains in its owning repository.** See the
 - **Time measurement:** steady-clock nanosecond/millisecond timing with explicit
   user-controlled setup, measurement and verification boundaries.
 - **Samples and statistics:** elapsed samples, mean, median (including even
-  counts), min, max, median absolute deviation and nearest-rank p95.
+  counts), min, max, median absolute deviation, sample variance, sample
+  standard deviation and nearest-rank p95.
 - **Calibration:** convert caller-supplied pilot timing to bounded repetitions,
   without implicitly running or mutating any experiment.
 - **Comparison:** speedup (baseline/candidate) and geometric mean of ratios.
 - **Parameter matrices:** all custom benchmark arguments accept ordered typed
   lists; a lazy Cartesian product preserves duplicates and exposes each case.
 - **Reporting:** Logging-backed summaries with complete parameter sequences
-  in the header and one labelled row per configuration.
+  in the header and one labelled row per configuration. The standard
+  `--summary` option chooses report columns and order; the default is
+  `min,max,mean,mad`. Also available: `median,p95,stddev,variance,count`.
 - **Progress:** Logging details for configurations, executions and samples.
 - **Optimization barrier:** keep measured results observable.
 

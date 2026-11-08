@@ -19,3 +19,17 @@ measurements for a single configuration). Verbosity 4: individual matrix
 measurements. The measurement loop itself does not log.
 
 Construction, warmup, timing, correctness checks and reporting are explicit.
+
+## Selecting summary columns
+
+Use `--summary min,max,mean,mad` (the default) or a comma-separated
+selection such as `--summary median,mad,stddev,p95,count`. The output
+preserves the requested column order. Available names are `min`, `max`,
+`mean`, `mad`, `median`, `p95`, `stddev`, `variance`, and `count`.
+
+All timing columns are in nanoseconds except `variance`, which is in
+squared nanoseconds. Variance and standard deviation are sample estimates
+(denominator N-1). For a single sample these fields display `n/a`, not zero.
+The tutorial passes `cli.summary_fields()` to the `Report` constructor;
+`--summary` only controls the final summary columns, not log verbosity,
+sampling or benchmark parameter axes.

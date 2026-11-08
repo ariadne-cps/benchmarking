@@ -4,6 +4,7 @@
 #include "benchmarking/samples.hpp"
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <numeric>
 #include <stdexcept>
 #include <vector>
@@ -18,6 +19,10 @@ struct Statistics {
     double mad;
     double p95;
     std::size_t count;
+    // Sample variance and standard deviation (n-1 denominator).
+    // Undefined for n=1; represented by quiet NaN.
+    double variance;
+    double stddev;
 };
 
 inline double median_of_sorted(std::vector<double> const& sorted) {
@@ -38,10 +43,22 @@ inline Statistics summarize(Samples const& samples) {
     std::sort(deviations.begin(), deviations.end());
     auto const p95index = static_cast<std::size_t>(
         std::ceil(0.95 * static_cast<double>(sorted.size()))) - 1u;
-    return {med, std::accumulate(sorted.begin(), sorted.end(), 0.0)
-                 / static_cast<double>(sorted.size()),
-            sorted.front(), sorted.back(), median_of_sorted(deviations),
-            sorted[p95index], sorted.size()};
+    // Welford's update avoids cancellation in E[X^2] - E[X]^2.
+    double mean = 0.0;
+    double squared_deviations = 0.0;
+    std::size_t n = 0u;
+    for (double value : samples.values()) {
+        ++n;
+        double const delta = value - mean;
+        mean += delta / static_cast<double>(n);
+        squared_deviations += delta * (value - mean);
+    }
+    double const variance = n > 1u
+        ? squared_deviations / static_cast<double>(n - 1u)
+        : std::numeric_limits<double>::quiet_NaN();
+    return {med, mean, sorted.front(), sorted.back(),
+            median_of_sorted(deviations), sorted[p95index], n,
+            variance, std::sqrt(variance)};
 }
 } // namespace Ariadne::Benchmarking
 

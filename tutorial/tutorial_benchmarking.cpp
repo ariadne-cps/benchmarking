@@ -22,7 +22,7 @@ int main(int argc, char const* argv[]) {
         cli.add_parameters(matrix);
         if (not cli.acquire(Bench::arguments(argc, argv))) return 0;
 
-        Bench::Report report("Ariadne Benchmarking tutorial");
+        Bench::Report report("Ariadne Benchmarking tutorial", cli.summary_fields());
         report.set_parameter_header(matrix.header());
         Bench::RunLog log(matrix.combinations());
         matrix.for_each([&](Bench::Configuration const& config) {
