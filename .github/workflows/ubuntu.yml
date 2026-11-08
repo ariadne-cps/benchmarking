@@ -15,6 +15,9 @@ jobs:
   build-test:
     name: ${{ matrix.config.name }} [${{ matrix.build_type }}]
     runs-on: ${{ matrix.config.os }}
+    permissions:
+      contents: read
+      statuses: write
     strategy:
       fail-fast: false
       matrix:
@@ -60,7 +63,22 @@ jobs:
 
       - name: Build Release library
         if: matrix.build_type == 'Release'
-        run: cmake --build "${{ runner.workspace }}/build" --parallel "$NPROC" --target ariadne-benchmarking
+        run: |
+          set -o pipefail
+          cmake --build "${{ runner.workspace }}/build" --parallel "$NPROC" --target ariadne-benchmarking 2>&1 | tee "${{ runner.workspace }}/build/compile.log"
+
+      - name: Record first compiler error as a temporary diagnostic status
+        if: failure() && matrix.build_type == 'Release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          logfile="${{ runner.workspace }}/build/compile.log"
+          line="$(grep -E -m1 'fatal error:|(^|[[:space:]])error:|error C[0-9]+|CMake Error' "$logfile" || true)"
+          if [ -z "$line" ]; then line="$(tail -n 1 "$logfile")"; fi
+          description="$(printf '%s' "$line" | cut -c 1-130)"
+          payload="$(jq -n --arg message "$description" '{"state":"failure","context":"benchmarking/compiler-diagnostic","description":$message}')"
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" --data "$payload" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" || true
 
       - name: Build and execute C++ benchmark tutorial
         if: matrix.build_type == 'Release'
