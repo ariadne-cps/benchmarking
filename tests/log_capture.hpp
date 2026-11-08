@@ -5,15 +5,14 @@
 #include <iostream>
 #include <sstream>
 
-// These tests own the process logger and run with no worker threads. Capture
+// These tests own the process logger and run without a ThreadManager. Capture
 // its immediate output and restore formatting and the stream even on failure.
 class LogCapture {
 public:
     LogCapture()
         : _verbosity(Ariadne::Logger::instance().configuration().verbosity()),
           _theme(Ariadne::Logger::instance().configuration().theme()) {
-        Ariadne::ThreadManager::instance().set_concurrency(0u);
-        Ariadne::ThreadManager::instance().set_logging_immediate_scheduler();
+        Ariadne::Logger::instance().use_immediate_scheduler();
         Ariadne::Logger::instance().configuration().set_theme(Ariadne::TT_THEME_NONE);
         _previous = std::clog.rdbuf(_output.rdbuf());
     }
