@@ -30,11 +30,16 @@ remains in its owning repository.** See the
   in the header and one labelled row per configuration. The standard
   `--summary` option chooses report columns and order; the default is
   `min,max,mean,mad`. Also available: `median,p95,stddev,variance,count`.
+- **Warm-ups:** the standard `--warmups N` option defaults to zero.
+  `Runner` performs each warm-up with preparation, timing and verification,
+  excludes its timing from statistics and emits progress through Logging.
 - **Progress:** Logging details for configurations, executions and samples.
 - **Optimization barrier:** keep measured results observable.
 
-The library never changes a benchmark's measurement boundaries, warm-up policy,
-sample ordering, or semantic checks. Those remain explicit in the caller.
+The benchmark author supplies separate preparation, operation and verification
+callbacks; `Runner` applies the global warm-up count before measured samples.
+Preparation and verification remain outside the timed region, and warm-ups
+are checked but never included in reported statistics.
 
 ## Dependencies
 
@@ -80,8 +85,8 @@ cmake --build build-release --target tutorial_benchmarking
 
 The tutorial illustrates `--concurrency` configuration, input preparation
 outside the timed region, one
-explicit measured operation, post-timing checksum verification, warm-up
-exclusion, statistics and Logging-based reporting. Keep it updated whenever
+explicit measured operation, post-timing checksum verification, framework-managed
+warm-ups (disabled by default), statistics and Logging-based reporting. Keep it updated whenever
 the public API changes.
 
 ## Integration in consumer repositories

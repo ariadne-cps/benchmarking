@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <limits>
 
 using namespace Ariadne::Benchmarking;
 using namespace Ariadne::Testing;
@@ -182,6 +183,89 @@ int main() {
                   matrix.execution_level() == 3u &&
                   matrix.measurement_level() == 4u,
                   "matrix adds exactly one detail level");
+    });
+    suite.add("global warmup CLI", [](Context& ctx) {
+        CommandLine defaults;
+        ctx.prove(defaults.warmups() == 0u,
+                  "default warmup count is zero");
+        CommandLine cli;
+        Ariadne::List<Ariadne::String> args;
+        args.append(Ariadne::String("test_benchmarking"));
+        args.append(Ariadne::String("--warmups"));
+        args.append(Ariadne::String("2"));
+        bool const accepted = cli.acquire(args);
+        ctx.prove(accepted && cli.warmups() == 2u,
+                  "global warmup CLI accepted");
+        Runner configured(cli);
+        ctx.prove(configured.warmups() == 2u,
+                  "runner inherits global warmup count");
+    });
+    suite.add("warmups are verified and excluded from statistics",
+              [](Context& ctx) {
+        unsigned prepared = 0u;
+        unsigned executed = 0u;
+        unsigned verified = 0u;
+        unsigned value = 0u;
+        Runner runner(2u);
+        Samples const samples = runner.run(
+            "work", 3u,
+            [&] { ++prepared; value = 0u; },
+            [&] { ++executed; value = 7u; },
+            [&] {
+                ++verified;
+                if (value != 7u)
+                    throw std::runtime_error("invalid benchmark result");
+            });
+        ctx.prove(prepared == 5u && executed == 5u && verified == 5u,
+                  "warmups run full prepare, measure and verify phases");
+        ctx.prove(samples.size() == 3u,
+                  "only measured executions are sampled");
+    });
+    suite.add("default runner performs no warmups", [](Context& ctx) {
+        Runner runner;
+        unsigned executed = 0u;
+        Samples const samples = runner.run(
+            "work", 2u,
+            [] {},
+            [&] { ++executed; },
+            [] {});
+        ctx.prove(runner.warmups() == 0u && executed == 2u &&
+                  samples.size() == 2u,
+                  "zero warmup default preserves sample count");
+    });
+    suite.add("warmup verification failures propagate", [](Context& ctx) {
+        Runner runner(1u);
+        unsigned executed = 0u;
+        bool rejected = false;
+        try {
+            (void)runner.run("invalid", 1u,
+                [] {},
+                [&] { ++executed; },
+                [&] { throw std::runtime_error("verification failed"); });
+        } catch (std::runtime_error const&) { rejected = true; }
+        ctx.prove(rejected && executed == 1u,
+                  "invalid warmup aborts rather than silently discarding");
+    });
+    suite.add("runner rejects invalid counts and normalization",
+              [](Context& ctx) {
+        Runner runner(1u);
+        bool rejected = false;
+        try {
+            (void)runner.run("zero", 0u, [] {}, [] {}, [] {});
+        } catch (std::invalid_argument const&) { rejected = true; }
+        ctx.prove(rejected, "zero measured samples rejected");
+        rejected = false;
+        try {
+            (void)runner.run("invalid norm", 1u, [] {}, [] {}, [] {}, 0.0);
+        } catch (std::invalid_argument const&) { rejected = true; }
+        ctx.prove(rejected, "invalid normalization rejected");
+        rejected = false;
+        try {
+            (void)runner.run("overflow",
+                std::numeric_limits<unsigned>::max(),
+                [] {}, [] {}, [] {});
+        } catch (std::overflow_error const&) { rejected = true; }
+        ctx.prove(rejected, "round overflow rejected before execution");
     });
     suite.add("timing boundaries", [](Context& ctx) {
         int invocations = 0;
