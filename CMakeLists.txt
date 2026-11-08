@@ -24,7 +24,7 @@ if(NOT TARGET benchmarking)
     add_library(benchmarking INTERFACE)
     target_include_directories(benchmarking INTERFACE
         "${CMAKE_CURRENT_SOURCE_DIR}/include")
-    target_link_libraries(benchmarking INTERFACE threading)
+    target_link_libraries(benchmarking INTERFACE logging)
 endif()
 
 # The target and the root-scope registration API are owned by Benchmarking.
@@ -37,11 +37,11 @@ if(TARGET everything)
 endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
-    # A standalone test-only archive bundles the Threading and its transitive object files.
+    # A standalone test-only archive bundles Logging and its transitive object files.
     # It is NOT exported, installed, or linked into consumers' production code.
-    get_target_property(_threading_objects threading ARIADNE_PROJECT_OBJECT_TARGETS)
+    get_target_property(_logging_objects logging ARIADNE_PROJECT_OBJECT_TARGETS)
     add_library(ariadne-benchmarking STATIC src/benchmarking.cpp)
-    foreach(_object_target IN LISTS _threading_objects)
+    foreach(_object_target IN LISTS _logging_objects)
         target_sources(ariadne-benchmarking PRIVATE
             $<TARGET_OBJECTS:${_object_target}>)
     endforeach()

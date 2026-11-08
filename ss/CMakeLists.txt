@@ -1,5 +1,4 @@
-# Threading supplies Logging and Utility transitively.
-# Testing is separately initialized for standalone tests.
-if(NOT TARGET threading)
-    ariadne_add_submodule(threading)
+# Logging provides Utility transitively. Testing remains independent.
+if(NOT TARGET logging)
+    ariadne_add_submodule(logging)
 endif()
