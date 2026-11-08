@@ -1,3 +1,31 @@
+/***************************************************************************
+ *            benchmarking/comparison_results.hpp
+ *
+ *  Copyright  2026  Luca Geretti
+ *
+ ****************************************************************************/
+
+/*
+ *  This file is part of Ariadne.
+ *
+ *  Ariadne is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Ariadne is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*! \file benchmarking/comparison_results.hpp
+ *  \brief Store, pair and aggregate cross-implementation timing data.
+ */
+
 #ifndef ARIADNE_BENCHMARKING_COMPARISON_RESULTS_HPP
 #define ARIADNE_BENCHMARKING_COMPARISON_RESULTS_HPP
 
@@ -17,11 +45,13 @@
 
 namespace Ariadne::Benchmarking {
 
+//! Identify one configuration by ordinal, label and named parameter dimensions.
 struct ComparisonContext {
     std::size_t ordinal = 1u;
     std::string label = "default";
     std::map<std::string, std::string> dimensions;
 
+    //! Capture an immutable display context from a configuration.
     static ComparisonContext from(Configuration const& configuration) {
         ComparisonContext result;
         result.ordinal = configuration.ordinal();
@@ -33,6 +63,7 @@ struct ComparisonContext {
     }
 };
 
+//! One completed measurement with its implementation and operation key.
 struct MeasurementRow {
     std::string implementation;
     std::string operation;
@@ -40,6 +71,7 @@ struct MeasurementRow {
     Statistics statistics;
 };
 
+//! One reference/candidate pair: slowdown = candidate/reference, speedup = reference/candidate.
 struct ComparisonRow {
     std::string reference;
     std::string candidate;
@@ -51,6 +83,7 @@ struct ComparisonRow {
     double speedup = 0.0;   // reference / candidate: > 1 means faster
 };
 
+//! Aggregate slowdowns: geometric mean, summed-time ratio and worst individual case.
 struct AggregateRow {
     std::string reference;
     std::string candidate;
@@ -66,8 +99,11 @@ struct AggregateRow {
 // Owns completed measurements, not measured callables. A comparison is
 // considered valid only when all registered candidates contain exactly the
 // same (configuration ordinal, operation) keys as the reference.
+//! Own completed statistics and enforce identical operation/configuration keys across implementations.
+//! Configuration ordinals identify cases even when displayed parameter values repeat.
 class ComparisonResults {
 public:
+    //! Register a nonempty, unique implementation name.
     void register_implementation(std::string name) {
         if (name.empty())
             throw std::invalid_argument("implementation name cannot be empty");
@@ -77,16 +113,21 @@ public:
         _implementations.push_back(std::move(name));
     }
 
+    //! Return registered implementations in insertion order.
     std::vector<std::string> const& implementations() const {
         return _implementations;
     }
 
+    //! Append samples or precomputed statistics for a unique operation/configuration/implementation key.
+    //! @throws std::invalid_argument for unknown implementations, duplicates or inconsistent metadata.
     void add(std::string implementation, std::string operation,
              ComparisonContext context, Samples const& samples) {
         add(std::move(implementation), std::move(operation),
             std::move(context), summarize(samples));
     }
 
+    //! Append samples or precomputed statistics for a unique operation/configuration/implementation key.
+    //! @throws std::invalid_argument for unknown implementations, duplicates or inconsistent metadata.
     void add(std::string implementation, std::string operation,
              ComparisonContext context, Statistics statistics) {
         if (std::find(_implementations.begin(), _implementations.end(),
@@ -109,10 +150,12 @@ public:
                          std::move(context), statistics});
     }
 
+    //! Return retained measurement rows.
     std::vector<MeasurementRow> const& measurements() const { return _rows; }
 
     // Only elapsed-time location statistics have meaningful ratio semantics;
     // dispersion and count must not be used as the timing metric.
+    //! Extract min, max, mean, median or p95 for timing ratios; reject dispersion/count.
     static double timing(Statistics const& stats, SummaryField metric) {
         switch (metric) {
             case SummaryField::Minimum: return stats.minimum;
@@ -125,6 +168,9 @@ public:
         }
     }
 
+    //! Match candidate and reference measurements by ordinal and operation.
+    //! @param metric Time-location statistic to compare.
+    //! @throws std::invalid_argument on missing keys or nonpositive/nonfinite measurements.
     std::vector<ComparisonRow> paired(
             std::string const& reference,
             SummaryField metric = SummaryField::Median) const {
@@ -182,6 +228,8 @@ public:
         return result;
     }
 
+    //! Summarize paired slowdowns per configuration or globally.
+    //! @param by_configuration When false, aggregate over every configuration.
     std::vector<AggregateRow> aggregates(
             std::string const& reference,
             bool by_configuration = true,

@@ -1,3 +1,31 @@
+/***************************************************************************
+ *            benchmarking/battery.hpp
+ *
+ *  Copyright  2026  Luca Geretti
+ *
+ ****************************************************************************/
+
+/*
+ *  This file is part of Ariadne.
+ *
+ *  Ariadne is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Ariadne is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*! \file benchmarking/battery.hpp
+ *  \brief Type-safe benchmark battery for competing implementation types.
+ */
+
 #ifndef ARIADNE_BENCHMARKING_BATTERY_HPP
 #define ARIADNE_BENCHMARKING_BATTERY_HPP
 
@@ -22,19 +50,25 @@ namespace Ariadne::Benchmarking {
 // a distinct operation. All callbacks execute synchronously while the workload
 // and its captured backend pool are alive.
 template<class... Implementations>
+//! Execute the same templated workload separately for each concrete implementation.
+//! The record callback registers prepare, operation, verify and normalization for named operations.
 class ComparisonBattery {
     static_assert(sizeof...(Implementations) > 0u,
                   "a battery needs at least one implementation");
 public:
+    //! Register unique names for the implementation types.
     explicit ComparisonBattery(std::array<std::string, sizeof...(Implementations)> names)
         : _names(std::move(names)) {
         for (auto const& name : _names)
             _results.register_implementation(name);
     }
 
+    //! Return accumulated measurements and comparison-ready statistics.
     ComparisonResults const& results() const { return _results; }
 
     template<class Workload>
+    //! Run registered operations for each implementation at a given configuration.
+    //! @param samples Count of measured rounds, excluding warm-ups.
     void run(Configuration const& configuration, Runner const& runner,
              unsigned samples, Workload&& workload) {
         ComparisonContext const context = ComparisonContext::from(configuration);
@@ -47,6 +81,7 @@ public:
     }
 
     template<class Workload>
+    //! Execute the workload for each configuration in a lazy parameter matrix.
     void run(Matrix const& matrix, Runner const& runner,
              unsigned samples, Workload&& workload) {
         matrix.for_each([&](Configuration const& configuration) {

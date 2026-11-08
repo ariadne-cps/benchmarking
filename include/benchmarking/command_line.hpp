@@ -1,3 +1,31 @@
+/***************************************************************************
+ *            benchmarking/command_line.hpp
+ *
+ *  Copyright  2026  Luca Geretti
+ *
+ ****************************************************************************/
+
+/*
+ *  This file is part of Ariadne.
+ *
+ *  Ariadne is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Ariadne is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*! \file benchmarking/command_line.hpp
+ *  \brief CLI integration of threading, logging and benchmark options.
+ */
+
 #ifndef ARIADNE_BENCHMARKING_COMMAND_LINE_HPP
 #define ARIADNE_BENCHMARKING_COMMAND_LINE_HPP
 
@@ -16,6 +44,7 @@
 namespace Ariadne::Benchmarking {
 
 template<class UInt>
+//! Parse a nonnegative integer fitting UInt; reject malformed and overflowing values.
 UInt parse_unsigned(String const& value) {
     std::string const text(value);
     if (text.empty() or text.front() == '-')
@@ -27,6 +56,7 @@ UInt parse_unsigned(String const& value) {
     return static_cast<UInt>(parsed);
 }
 
+//! Parse distinct unsigned integers separated by commas, all at least minimum.
 inline std::vector<unsigned> parse_unique_unsigned_list(
         String const& value, unsigned minimum = 0u) {
     std::string const text(value);
@@ -49,14 +79,17 @@ inline std::vector<unsigned> parse_unique_unsigned_list(
     return result;
 }
 
+//! Convert raw argc/argv into the Ariadne command-line argument sequence.
 inline List<String> arguments(int argc, char const* argv[]) {
     List<String> result;
     for (int i = 0; i < argc; ++i) result.append(String(argv[i]));
     return result;
 }
 
+//! Support global --summary and --warmups alongside threading and logging settings.
 class CommandLine : public ThreadingCommandLineInterface {
 public:
+    //! Initialize the logger and register benchmark-specific CLI parsers.
     CommandLine() {
         initialize_logging();
         add(CommandLineContribution("benchmarking", {
@@ -80,9 +113,13 @@ public:
         }));
     }
 
+    //! Return summary fields in CLI-selected order.
     SummaryFields const& summary_fields() const { return _summary_fields; }
+    //! Return the number of nonreported warm-up executions per operation.
     unsigned warmups() const { return _warmups; }
 
+    //! Register all matrix axes as command-line arguments.
+    //! @note The matrix and its parameters must remain alive through acquisition.
     void add_parameters(Matrix& matrix) {
         add(CommandLineContribution("benchmark-parameters", matrix.parsers()));
     }

@@ -1,3 +1,31 @@
+/***************************************************************************
+ *            benchmarking/comparison_reports.hpp
+ *
+ *  Copyright  2026  Luca Geretti
+ *
+ ****************************************************************************/
+
+/*
+ *  This file is part of Ariadne.
+ *
+ *  Ariadne is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Ariadne is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*! \file benchmarking/comparison_reports.hpp
+ *  \brief Configurable tabular views of comparison results.
+ */
+
 #ifndef ARIADNE_BENCHMARKING_COMPARISON_REPORTS_HPP
 #define ARIADNE_BENCHMARKING_COMPARISON_REPORTS_HPP
 
@@ -14,18 +42,23 @@
 
 namespace Ariadne::Benchmarking {
 
+//! Select raw measurements, paired ratios or aggregated ratios.
 enum class ComparisonReportKind { Measurements, Pairs, Aggregates };
 
+//! Describe one independently configured, named view and its column order.
 struct ComparisonReportDefinition {
     std::string name;
     ComparisonReportKind kind = ComparisonReportKind::Measurements;
     std::vector<std::string> columns;
     TableOptions options;
     // Pair and aggregate ratios are derived from the same location metric.
+    //! Time-location statistic used for paired and aggregate timing ratios.
     SummaryField metric = SummaryField::Median;
     // For aggregates: false gives one aggregate per candidate over all cases.
+    //! Whether to aggregate separately per configuration.
     bool by_configuration = true;
 
+    //! Construct a named view with a kind and selected column identifiers.
     ComparisonReportDefinition(std::string report_name,
                                ComparisonReportKind report_kind,
                                std::vector<std::string> selected_columns)
@@ -36,8 +69,10 @@ struct ComparisonReportDefinition {
 // Multiple report definitions may render the *same* benchmark results with
 // different columns, grouping, metrics and aggregation levels. The definitions
 // never influence which measurements are executed or retained.
+//! Render any number of views over the same retained measurements.
 class ComparisonReports {
 public:
+    //! Add a view, rejecting missing names or columns and duplicates.
     void add(ComparisonReportDefinition definition) {
         if (definition.name.empty() or definition.columns.empty())
             throw std::invalid_argument("report name and columns are mandatory");
@@ -57,6 +92,7 @@ public:
         _definitions.push_back(std::move(definition));
     }
 
+    //! Return standard raw, paired and aggregate view definitions.
     static ComparisonReports standard() {
         ComparisonReports reports;
         reports.add({"measurements", ComparisonReportKind::Measurements,
@@ -70,6 +106,7 @@ public:
         return reports;
     }
 
+    //! Render one named view against a chosen reference implementation.
     std::string render(std::string const& name,
                        ComparisonResults const& results,
                        std::string const& reference) const {
@@ -80,6 +117,7 @@ public:
         throw std::invalid_argument("unknown report name");
     }
 
+    //! Render each configured view, separated by blank lines.
     std::string render_all(ComparisonResults const& results,
                            std::string const& reference) const {
         std::string output;
@@ -91,6 +129,7 @@ public:
         return output;
     }
 
+    //! Write all rendered views through Logging at verbosity one.
     void print_all(ComparisonResults const& results,
                    std::string const& reference) const {
         LOGGING_PRINTLN_AT(1, render_all(results, reference))
