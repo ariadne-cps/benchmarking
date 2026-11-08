@@ -153,6 +153,152 @@ int main() {
                   output.find("long_operation_name") != std::string::npos,
                   "long numeric and descriptive values are fully displayed");
     });
+    suite.add("templated benchmark battery", [](Context& ctx) {
+        Parameter<unsigned> sizes("bits","Size",{8u,16u});
+        Matrix matrix;
+        matrix.add(sizes);
+        Runner runner(1u,matrix.combinations());
+        ComparisonBattery<int,long,double> battery({"A","B","C"});
+        unsigned verifications = 0u;
+        auto workload = [&]<class Implementation>(auto&& record) {
+            unsigned value = 0u;
+            unsigned const factor = sizeof(Implementation) > sizeof(int) ? 2u : 1u;
+            record("increment",
+                [&] { value = 0u; },
+                [&] { value += factor; keep_alive(value); },
+                [&] {
+                    if (value != factor) throw std::runtime_error("incorrect increment");
+                    ++verifications;
+                });
+            record("double",
+                [&] { value = 0u; },
+                [&] { value = 2u * factor; keep_alive(value); },
+                [&] {
+                    if (value != 2u * factor) throw std::runtime_error("incorrect double");
+                    ++verifications;
+                });
+        };
+        battery.run(matrix,runner,2u,workload);
+        ctx.prove(battery.results().measurements().size() == 12u &&
+                  verifications == 36u,
+                  "three implementations times two operations times two configurations");
+        ctx.prove(battery.results().paired("A").size() == 8u,
+                  "two candidates and complete operation pairing");
+    });
+    suite.add("deterministic N-way comparisons and summaries", [](Context& ctx) {
+        ComparisonResults results;
+        for (auto const& name : {"A","B","C"})
+            results.register_implementation(name);
+        ComparisonContext first;
+        first.label = "bits=53";
+        first.dimensions["bits"] = "53";
+        ComparisonContext second;
+        second.ordinal = 2u;
+        second.label = "bits=128";
+        second.dimensions["bits"] = "128";
+        auto add = [&](std::string name,std::string operation,
+                       ComparisonContext config,double ns) {
+            Samples samples;
+            samples.add(ns);
+            samples.add(ns);
+            results.add(std::move(name),std::move(operation),config,samples);
+        };
+        for (auto const& config : {first,second}) {
+            add("A","add",config,10.0);
+            add("A","mul",config,20.0);
+            add("B","add",config,20.0);
+            add("B","mul",config,40.0);
+            add("C","add",config,5.0);
+            add("C","mul",config,10.0);
+        }
+        auto const paired = results.paired("A");
+        ctx.prove(paired.size() == 8u &&
+                  std::abs(paired.front().slowdown-2.0) < 1e-12 &&
+                  std::abs(paired.front().speedup-0.5) < 1e-12,
+                  "slowdown is candidate/reference and speedup its reciprocal");
+        auto const totals = results.aggregates("A",false);
+        ctx.prove(totals.size() == 2u && totals.front().operations == 4u &&
+                  std::abs(totals.front().geomean-2.0) < 1e-12 &&
+                  std::abs(totals.front().total_time-2.0) < 1e-12 &&
+                  std::abs(totals.front().worst-2.0) < 1e-12 &&
+                  std::abs(totals.back().geomean-0.5) < 1e-12,
+                  "per-candidate geomean, total time, worst and direction");
+        ctx.prove(results.aggregates("A",true).size() == 4u,
+                  "per-configuration aggregates");
+        bool duplicate = false;
+        try { add("B","add",first,20.0); }
+        catch (std::invalid_argument const&) { duplicate = true; }
+        ctx.prove(duplicate,"duplicate measurement rejected");
+        bool invalid = false;
+        try { (void)results.paired("A", SummaryField::MAD); }
+        catch (std::invalid_argument const&) { invalid = true; }
+        ctx.prove(invalid,"dispersion not accepted as comparison timing");
+    });
+    suite.add("strict pairing and configuration metadata", [](Context& ctx) {
+        ComparisonResults results;
+        results.register_implementation("A");
+        results.register_implementation("B");
+        Samples samples;
+        samples.add(10.0);
+        results.add("A","add",ComparisonContext{},samples);
+        bool missing = false;
+        try { (void)results.paired("A"); }
+        catch (std::invalid_argument const&) { missing = true; }
+        ctx.prove(missing,"missing candidate operations rejected");
+        results.add("B","add",ComparisonContext{},samples);
+        ctx.prove(results.paired("A").size() == 1u,"exact pairing accepted");
+        ComparisonContext conflicting;
+        conflicting.label = "different";
+        bool inconsistent = false;
+        try { results.add("B","mul",conflicting,samples); }
+        catch (std::invalid_argument const&) { inconsistent = true; }
+        ctx.prove(inconsistent,"conflicting configuration metadata rejected");
+    });
+    suite.add("independently configured comparison reports", [](Context& ctx) {
+        ComparisonResults data;
+        data.register_implementation("floatdp");
+        data.register_implementation("floatmp");
+        ComparisonContext config;
+        config.label = "bits=53";
+        config.dimensions["bits"] = "53";
+        Samples baseline,candidate;
+        baseline.add(10.0);
+        baseline.add(10.0);
+        candidate.add(20.0);
+        candidate.add(20.0);
+        data.add("floatdp","add",config,baseline);
+        data.add("floatmp","add",config,candidate);
+        ComparisonReports reports;
+        reports.add({"raw",ComparisonReportKind::Measurements,
+                     {"implementation","operation","param:bits","min","mad"}});
+        reports.add({"paired",ComparisonReportKind::Pairs,
+                     {"operation","param:bits","candidate_ns",
+                      "reference_ns","slowdown"}});
+        ComparisonReportDefinition overall{"total",ComparisonReportKind::Aggregates,
+                     {"candidate","operations","geomean","total_time","worst"}};
+        overall.by_configuration = false;
+        reports.add(overall);
+        auto const raw = reports.render("raw",data,"floatdp");
+        auto const paired = reports.render("paired",data,"floatdp");
+        auto const total = reports.render("total",data,"floatdp");
+        ctx.prove(raw.find("Implementation") != std::string::npos &&
+                  raw.find("MAD (ns)") != std::string::npos &&
+                  raw.find("Slowdown") == std::string::npos,
+                  "raw measurement view has independent column selection");
+        ctx.prove(paired.find("Slowdown (x)") != std::string::npos &&
+                  paired.find("2.000") != std::string::npos &&
+                  paired.find("Min (ns)") == std::string::npos,
+                  "paired comparison view has independent column selection");
+        ctx.prove(total.find("Total time (x)") != std::string::npos &&
+                  total.find("Worst (x)") != std::string::npos &&
+                  total.find("2.000") != std::string::npos,
+                  "aggregate view has independent columns");
+        reports.add({"invalid",ComparisonReportKind::Pairs,{"unrecognized"}});
+        bool rejected = false;
+        try { (void)reports.render("invalid",data,"floatdp"); }
+        catch (std::invalid_argument const&) { rejected = true; }
+        ctx.prove(rejected,"invalid columns rejected");
+    });
     suite.add("stable sample dispersion", [](Context& ctx) {
         Samples samples;
         samples.add(1000000001.0);
