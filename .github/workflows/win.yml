@@ -15,6 +15,9 @@ jobs:
   build-test:
     name: ${{ matrix.config.name }} [${{ matrix.build_type }}]
     runs-on: ${{ matrix.config.os }}
+    permissions:
+      contents: read
+      statuses: write
     strategy:
       fail-fast: false
       matrix:
@@ -60,14 +63,33 @@ jobs:
       - name: Build and execute C++ benchmark tutorial
         if: matrix.build_type == 'Release'
         run: |
-          cmake --build build --target tutorial_benchmarking
+          cmake --build build --target tutorial_benchmarking 2>&1 | Tee-Object -FilePath build\\tutorial-compile.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           .\\build\\tutorial\\tutorial_benchmarking.exe --lengths 32,64 --iterations 100,200 --samples 3 --warmups 1 --verbosity 4
 
 
       - name: Build Debug tests
         if: matrix.build_type == 'Debug'
-        run: cmake --build build --parallel --target tests
+        run: |
+          cmake --build build --parallel --target tests 2>&1 | Tee-Object -FilePath build\\debug-compile.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run Debug tests
         if: matrix.build_type == 'Debug'
         run: ctest --test-dir build --output-on-failure
+
+      - name: Temporary Windows compiler diagnostic
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $logfile = if ('${{ matrix.build_type }}' -eq 'Debug') { 'build\\debug-compile.log' } else { 'build\\tutorial-compile.log' }
+          $line = ''
+          if (Test-Path $logfile) {
+            $line = Get-Content $logfile | Where-Object { $_ -match 'error C[0-9]+|fatal error|error:|LNK[0-9]+|warning C[0-9]+' } | Select-Object -First 1
+          }
+          if (-not $line) { $line = 'Failure after build or no compiler diagnostic' }
+          $msg = [string]$line
+          if ($msg.Length -gt 135) { $msg = $msg.Substring(0,135) }
+          $payload = @{ state = "failure"; context = "benchmarking/msvc-error"; description = $msg } | ConvertTo-Json -Compress
+          Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/$env:GITHUB_REPOSITORY/statuses/$env:GITHUB_SHA" -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = "application/vnd.github+json" } -Body $payload -ContentType "application/json"
