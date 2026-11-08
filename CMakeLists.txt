@@ -47,7 +47,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     endforeach()
     target_link_libraries(ariadne-benchmarking PUBLIC benchmarking)
 
-    setup_standalone_project_tests(
+    setup_standalone_project(
         TARGET ariadne-benchmarking
         TEST_DIRECTORY tests
         TEST_TARGET tests

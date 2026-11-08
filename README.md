@@ -60,8 +60,7 @@ Testing and Benchmarking gitlinks from cross-module commit-consistency checks.
 ### Shared Build compatibility
 
 Benchmarking is now pinned to the shared Build mainline. Standalone
-C++ tests use `setup_standalone_project_tests()` rather than the
-removed legacy `setup_standalone_project()` entry point.
+C++ tests use `setup_standalone_project()` as provided by the merged Build mainline; the earlier test-only setup macro was superseded.
 Benchmarking continues to own its root-scope
 `ariadne_register_project_benchmarks` registration helper and
 remains an independent opt-in benchmarking module. Its pinned
@@ -113,7 +112,7 @@ along with the owning project's linked library. Do not add the Benchmarking
 interface to the production module's `INTERFACE_LINK_LIBRARIES`.
 
 The standalone test setup uses the shared
-`setup_standalone_project_tests` API; benchmark registration remains
+`setup_standalone_project` API; benchmark registration remains
 opt-in and isolated from production targets.
 
 ## Contributions
