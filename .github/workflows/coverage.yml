@@ -15,9 +15,6 @@ jobs:
   build:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
-    permissions:
-      contents: read
-      statuses: write
     strategy:
       fail-fast: false
       matrix:
@@ -74,22 +71,7 @@ jobs:
 
     - name: Build, Test and Generate Code Coverage
       working-directory: ${{runner.workspace}}/build
-      run: |
-        set -o pipefail
-        cmake --build . --parallel $($NPROC) --target coverage 2>&1 | tee coverage-build.log
-
-    - name: Record temporary first GCC coverage error
-      if: failure() && runner.os == 'Linux'
-      working-directory: ${{runner.workspace}}/build
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        line="$(grep -Ei 'geninfo: ERROR|lcov: ERROR|genhtml: ERROR|error:|ERROR:|no data|failed to|cannot|undefined reference' coverage-build.log | grep -v '^FAILED:' | tail -n 1 || true)"
-        if [ -z "$line" ]; then line="$(tail -n 1 coverage-build.log)"; fi
-        description="$(printf '%s' "$line" | cut -c 1-130)"
-        payload="$(jq -n --arg message "$description" '{"state":"failure","context":"benchmarking/coverage-diagnostic","description":$message}')"
-        curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" --data "$payload" \
-          "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" || true
+      run: cmake --build . --parallel $($NPROC) --target coverage
 
     - name: Check Codecov Token
       if: runner.os == 'macOS'
