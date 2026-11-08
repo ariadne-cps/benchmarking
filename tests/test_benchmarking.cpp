@@ -47,7 +47,7 @@ int main() {
     });
     suite.add("threading command line", [](Context& ctx) {
         CommandLine cli;
-        List<Ariadne::String> args;
+        Ariadne::List<Ariadne::String> args;
         args.append(Ariadne::String("test_benchmarking"));
         args.append(Ariadne::String("--concurrency"));
         args.append(Ariadne::String("0"));
