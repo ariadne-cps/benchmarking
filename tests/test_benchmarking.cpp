@@ -33,7 +33,7 @@ int main() {
                   SummaryFields({SummaryField::Stddev,SummaryField::Minimum,
                                  SummaryField::Count}),
                   "custom order preserved");
-        for (std::string const& invalid : {"", "min,", ",max", "min,,max",
+        for (char const* invalid : {"", "min,", ",max", "min,,max",
                                            "median,median", "unknown"}) {
             bool rejected = false;
             try { (void)parse_summary_fields(invalid); }
