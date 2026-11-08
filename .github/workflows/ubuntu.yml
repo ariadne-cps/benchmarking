@@ -85,7 +85,7 @@ jobs:
         run: ctest --test-dir "${{ runner.workspace }}/build" -j "$NPROC" --output-on-failure
 
       - name: Temporary compiler diagnostic
-        if: failure() && matrix.config.cxx == 'g++-12'
+        if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
