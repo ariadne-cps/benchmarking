@@ -57,6 +57,18 @@ of the ordinary production build. Its repository never runs
 `require_same_dependency_commit`; parents must also exclude the independent
 Testing and Benchmarking gitlinks from cross-module commit-consistency checks.
 
+### Shared Build compatibility
+
+Benchmarking is now pinned to the shared Build mainline. Standalone
+C++ tests use `setup_standalone_project_tests()` rather than the
+removed legacy `setup_standalone_project()` entry point.
+Benchmarking continues to own its root-scope
+`ariadne_register_project_benchmarks` registration helper and
+remains an independent opt-in benchmarking module. Its pinned
+Build, Threading and Testing submodules are aligned with the
+shared Build revision used across Ariadne, without making
+Benchmarking a runtime dependency of production libraries.
+
 ## Directory conventions
 
 - `include/benchmarking/`: reusable benchmark tools.
@@ -100,9 +112,9 @@ Link `ariadne-benchmarking` **only** to dedicated benchmark executables,
 along with the owning project's linked library. Do not add the Benchmarking
 interface to the production module's `INTERFACE_LINK_LIBRARIES`.
 
-The initial migration is intentionally not backward compatible with the old
-`setup_standalone_project_tests` API: repositories remain pinned to their old
-Build commits until deliberately moved to the refactoring branch.
+The standalone test setup uses the shared
+`setup_standalone_project_tests` API; benchmark registration remains
+opt-in and isolated from production targets.
 
 ## Contributions
 
