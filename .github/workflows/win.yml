@@ -15,9 +15,6 @@ jobs:
   build-test:
     name: ${{ matrix.config.name }} [${{ matrix.build_type }}]
     runs-on: ${{ matrix.config.os }}
-    permissions:
-      contents: read
-      statuses: write
     strategy:
       fail-fast: false
       matrix:
@@ -69,22 +66,7 @@ jobs:
 
       - name: Build Debug tests
         if: matrix.build_type == 'Debug'
-        run: |
-          cmake --build build --parallel --target tests 2>&1 | Tee-Object -FilePath build\\debug-compile.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Temporary MSVC compiler diagnostic
-        if: failure() && matrix.build_type == 'Debug'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $log = Get-Content build\\debug-compile.log
-          $errorLine = $log | Where-Object { $_ -match 'error C[0-9]+|fatal error|error:|LNK[0-9]+|warning C[0-9]+' } | Select-Object -First 1
-          if (-not $errorLine) { $errorLine = $log | Select-Object -Last 1 }
-          $description = [string]$errorLine
-          if ($description.Length -gt 130) { $description = $description.Substring(0,130) }
-          $payload = @{ state = "failure"; context = "benchmarking/msvc-diagnostic"; description = $description } | ConvertTo-Json -Compress
-          Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/$env:GITHUB_REPOSITORY/statuses/$env:GITHUB_SHA" -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = "application/vnd.github+json" } -Body $payload -ContentType "application/json"
+        run: cmake --build build --parallel --target tests
 
       - name: Run Debug tests
         if: matrix.build_type == 'Debug'
