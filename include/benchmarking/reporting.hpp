@@ -135,12 +135,12 @@ public:
         return table.str();
     }
 
-    //! Log the report title, optional parameter header and table.
+    //! Log the report at the current level (verbosity one at the root).
     void print() const {
-        LOGGING_PRINTLN_AT(1, _title)
+        LOGGING_PRINTLN(_title)
         if (not _parameter_header.empty())
-            LOGGING_PRINTLN_AT(1, _parameter_header)
-        LOGGING_PRINTLN_AT(1, table())
+            LOGGING_PRINTLN(_parameter_header)
+        LOGGING_PRINTLN(table())
     }
 
 private:

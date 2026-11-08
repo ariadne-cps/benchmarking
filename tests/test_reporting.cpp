@@ -54,6 +54,13 @@ public:
                 ARIADNE_TESTING_PROVE(capture.str().find("Configuration") != std::string::npos);
             }
         }
+        // Report::print must not require one level beyond the caller's
+        // current Logging level (as LOGGING_PRINTLN_AT(1) would do).
+        capture.clear();
+        auto& logger = Ariadne::Logger::instance();
+        logger.configuration().set_verbosity(logger.current_level());
+        report.print();
+        ARIADNE_TESTING_PROVE(capture.str().find("Measured results") != std::string::npos);
     }
 
     void test_table_validation_and_overflow() {

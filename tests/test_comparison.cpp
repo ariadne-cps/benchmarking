@@ -127,6 +127,14 @@ public:
         standard.print_all(data, "A");
         ARIADNE_TESTING_PROVE(capture.str().find("measurements") != std::string::npos);
         ARIADNE_TESTING_PROVE(capture.str().find("aggregates") != std::string::npos);
+        // Regress a misleading test configuration that used to allow
+        // print_all() to emit at current_level + 1. The report belongs
+        // to the current level and must be visible without that extra step.
+        capture.clear();
+        auto& logger = Ariadne::Logger::instance();
+        logger.configuration().set_verbosity(logger.current_level());
+        standard.print_all(data, "A");
+        ARIADNE_TESTING_PROVE(capture.str().find("aggregates") != std::string::npos);
     }
 
     void test_registration_and_keys() {

@@ -129,10 +129,11 @@ public:
         return output;
     }
 
-    //! Write all rendered views through Logging at verbosity one.
+    //! Write all rendered views at the current Logging level.
+    //! At the root scope this is visible with --verbosity 1.
     void print_all(ComparisonResults const& results,
                    std::string const& reference) const {
-        LOGGING_PRINTLN_AT(1, render_all(results, reference))
+        LOGGING_PRINTLN(render_all(results, reference))
     }
 
 private:
