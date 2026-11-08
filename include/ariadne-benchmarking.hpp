@@ -1,7 +1,9 @@
 #ifndef ARIADNE_BENCHMARKING_HPP
 #define ARIADNE_BENCHMARKING_HPP
 
+#include "benchmarking/parameters.hpp"
 #include "benchmarking/command_line.hpp"
+#include "benchmarking/run_logging.hpp"
 #include "benchmarking/logging.hpp"
 #include "benchmarking/timing.hpp"
 #include "benchmarking/samples.hpp"

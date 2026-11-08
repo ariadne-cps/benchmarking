@@ -2,6 +2,7 @@
 #define ARIADNE_BENCHMARKING_COMMAND_LINE_HPP
 
 #include "benchmarking/logging.hpp"
+#include "benchmarking/parameters.hpp"
 #include "threading/threading_command_line_interface.hpp"
 #include "utility/command_line_interface.hpp"
 
@@ -56,6 +57,10 @@ inline List<String> arguments(int argc, char const* argv[]) {
 class CommandLine : public ThreadingCommandLineInterface {
 public:
     CommandLine() { initialize_logging(); }
+
+    void add_parameters(Matrix& matrix) {
+        add(CommandLineContribution("benchmark-parameters", matrix.parsers()));
+    }
 };
 } // namespace Ariadne::Benchmarking
 
