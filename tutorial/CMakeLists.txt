@@ -1,0 +1,2 @@
+add_executable(tutorial_benchmark tutorial_benchmark.cpp)
+target_link_libraries(tutorial_benchmark PRIVATE ariadne-benchmarking)

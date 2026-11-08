@@ -1,0 +1,68 @@
+cmake_minimum_required(VERSION 3.15)
+project(Benchmarking VERSION 1.0 LANGUAGES CXX)
+
+option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+if(NOT TARGET ariadne-build)
+    find_package(Git REQUIRED)
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E env "LC_ALL=C"
+                "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}"
+                submodule update --init -- ss/bui
+        RESULT_VARIABLE _result)
+    if(_result)
+        message(FATAL_ERROR "Cannot initialize Build submodule")
+    endif()
+    include("${CMAKE_CURRENT_SOURCE_DIR}/ss/bui/cmake/ProjectOptions.cmake")
+endif()
+
+# Benchmarking deliberately has NO require_same_dependency_commit checks:
+# neither its gitlink nor Testing's gitlink is a production consistency gate.
+setup_project()
+add_subdirectory(ss)
+
+if(NOT TARGET benchmarking)
+    add_library(benchmarking INTERFACE)
+    target_include_directories(benchmarking INTERFACE
+        "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    target_link_libraries(benchmarking INTERFACE logging)
+endif()
+
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    # A standalone test-only archive bundles the Logging/Utility object files.
+    # It is NOT exported, installed, or linked into consumers' production code.
+    get_target_property(_logging_objects logging ARIADNE_PROJECT_OBJECT_TARGETS)
+    add_library(ariadne-benchmarking STATIC src/benchmarking.cpp)
+    foreach(_object_target IN LISTS _logging_objects)
+        target_sources(ariadne-benchmarking PRIVATE
+            $<TARGET_OBJECTS:${_object_target}>)
+    endforeach()
+    target_link_libraries(ariadne-benchmarking PUBLIC benchmarking)
+
+    setup_standalone_project(
+        TARGET ariadne-benchmarking
+        TEST_DIRECTORY tests
+        TEST_TARGET tests
+        SOURCES "${PROJECT_SOURCE_DIR}/include"
+                "${PROJECT_SOURCE_DIR}/src"
+    )
+    add_subdirectory(tutorial EXCLUDE_FROM_ALL)
+else()
+    # Consumers link this target only from their dedicated benchmark executables.
+    add_library(ariadne-benchmarking INTERFACE)
+    target_link_libraries(ariadne-benchmarking INTERFACE benchmarking)
+endif()
+
+# The common 'benchmarks' aggregate belongs to this repository, not Build.
+if(NOT TARGET benchmarks)
+    add_custom_target(benchmarks)
+endif()
+if(TARGET everything)
+    add_dependencies(everything benchmarks)
+endif()
+# The top-level owner keeps its existing benchmarks/ sources. No standalone
+# benchmarks/ directory is created inside the Benchmarking repository.
+if(NOT CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR
+   AND EXISTS "${CMAKE_SOURCE_DIR}/benchmarks/CMakeLists.txt")
+    add_subdirectory("${CMAKE_SOURCE_DIR}/benchmarks"
+                     "${CMAKE_BINARY_DIR}/benchmarks" EXCLUDE_FROM_ALL)
+endif()
