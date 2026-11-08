@@ -91,7 +91,9 @@ std::string format_value(T const& value) {
 }
 
 inline std::string quote_if_needed(std::string const& text) {
-    if (text.find_first_of(", \\t\\n\\r") == std::string::npos)
+    if (text.find(',') == std::string::npos &&
+        std::none_of(text.begin(), text.end(),
+                     [](unsigned char c) { return std::isspace(c) != 0; }))
         return text;
     std::ostringstream out;
     out << std::quoted(text);

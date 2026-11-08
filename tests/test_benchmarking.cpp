@@ -71,6 +71,10 @@ int main() {
                       "size=2, backend=fast", "size=2, backend=slow",
                       "size=4, backend=fast", "size=4, backend=slow"}),
                   "Cartesian product order");
+        ctx.prove(detail::quote_if_needed("backend") == "backend" &&
+                  detail::quote_if_needed("fast") == "fast" &&
+                  detail::quote_if_needed("hello world") == "\\"hello world\\"",
+                  "quote only separators and whitespace");
         ctx.prove(matrix.header() ==
                   "Parameters: size=[2, 4]; backend=[fast, slow] | configurations=4",
                   "all parameter sequences listed in header");
