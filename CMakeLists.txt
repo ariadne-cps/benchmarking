@@ -52,7 +52,6 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
         TEST_DIRECTORY tests
         TEST_TARGET tests
         SOURCES "${PROJECT_SOURCE_DIR}/include"
-                "${PROJECT_SOURCE_DIR}/src"
     )
     add_subdirectory(tutorial EXCLUDE_FROM_ALL)
 else()
