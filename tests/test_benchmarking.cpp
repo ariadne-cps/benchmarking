@@ -161,20 +161,21 @@ int main() {
         ComparisonBattery<int,long,double> battery({"A","B","C"});
         unsigned verifications = 0u;
         auto workload = [&]<class Implementation>(auto&& record) {
-            unsigned value = 0u;
-            unsigned const factor = sizeof(Implementation) > sizeof(int) ? 2u : 1u;
+            Implementation value{};
             record("increment",
-                [&] { value = 0u; },
-                [&] { value += factor; keep_alive(value); },
+                [&] { value = Implementation{}; },
+                [&] { value += Implementation{1}; keep_alive(value); },
                 [&] {
-                    if (value != factor) throw std::runtime_error("incorrect increment");
+                    if (value != Implementation{1})
+                        throw std::runtime_error("incorrect increment");
                     ++verifications;
                 });
             record("double",
-                [&] { value = 0u; },
-                [&] { value = 2u * factor; keep_alive(value); },
+                [&] { value = Implementation{}; },
+                [&] { value = Implementation{2}; keep_alive(value); },
                 [&] {
-                    if (value != 2u * factor) throw std::runtime_error("incorrect double");
+                    if (value != Implementation{2})
+                        throw std::runtime_error("incorrect double");
                     ++verifications;
                 });
         };
