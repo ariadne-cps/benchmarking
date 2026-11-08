@@ -188,6 +188,14 @@ public:
         throw std::invalid_argument("parameter does not belong to the matrix");
     }
 
+    std::vector<std::pair<std::string, std::string>> dimensions() const {
+        std::vector<std::pair<std::string, std::string>> result;
+        result.reserve(_axes.size());
+        for (std::size_t i = 0u; i < _axes.size(); ++i)
+            result.emplace_back(_axes[i]->name(), _axes[i]->display_at(_indices[i]));
+        return result;
+    }
+
     std::string label() const {
         std::ostringstream out;
         for (std::size_t i = 0; i < _axes.size(); ++i) {
