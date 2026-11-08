@@ -1,3 +1,31 @@
+/***************************************************************************
+ *            benchmarking/statistics.hpp
+ *
+ *  Copyright  2026  Luca Geretti
+ *
+ ****************************************************************************/
+
+/*
+ *  This file is part of Ariadne.
+ *
+ *  Ariadne is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Ariadne is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*! \file benchmarking/statistics.hpp
+ *  \brief Descriptive statistics for measured benchmark samples.
+ */
+
 #ifndef ARIADNE_BENCHMARKING_STATISTICS_HPP
 #define ARIADNE_BENCHMARKING_STATISTICS_HPP
 
@@ -11,6 +39,9 @@
 
 namespace Ariadne::Benchmarking {
 
+//! Store minimum, maximum, median, mean, median absolute deviation (MAD),
+//! nearest-rank p95, count and n-1 sample variance and standard deviation.
+//! Timing statistics are nanoseconds; variance is nanoseconds squared.
 struct Statistics {
     double median;
     double mean;
@@ -21,10 +52,13 @@ struct Statistics {
     std::size_t count;
     // Sample variance and standard deviation (n-1 denominator).
     // Undefined for n=1; represented by quiet NaN.
+    //! Unbiased sample variance (n-1 denominator), NaN for one sample.
     double variance;
+    //! Sample standard deviation, NaN for one sample.
     double stddev;
 };
 
+//! Find the median of nonempty sorted observations, averaging the middle two if even.
 inline double median_of_sorted(std::vector<double> const& sorted) {
     if (sorted.empty()) throw std::invalid_argument("empty sample collection");
     std::size_t const m = sorted.size() / 2u;
@@ -32,6 +66,8 @@ inline double median_of_sorted(std::vector<double> const& sorted) {
         : sorted[m-1u]/2.0 + sorted[m]/2.0;
 }
 
+//! Calculate descriptive statistics using Welford's variance recurrence.
+//! @throws std::invalid_argument if there are no samples.
 inline Statistics summarize(Samples const& samples) {
     if (samples.size() == 0u) throw std::invalid_argument("no samples");
     auto sorted = samples.values();

@@ -1,3 +1,31 @@
+/***************************************************************************
+ *            benchmarking/table.hpp
+ *
+ *  Copyright  2026  Luca Geretti
+ *
+ ****************************************************************************/
+
+/*
+ *  This file is part of Ariadne.
+ *
+ *  Ariadne is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Ariadne is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*! \file benchmarking/table.hpp
+ *  \brief Generic dynamic-width tables for benchmark output.
+ */
+
 #ifndef ARIADNE_BENCHMARKING_TABLE_HPP
 #define ARIADNE_BENCHMARKING_TABLE_HPP
 
@@ -14,16 +42,20 @@
 
 namespace Ariadne::Benchmarking {
 
+//! Select horizontal alignment of a column.
 enum class TableAlignment { Left, Right };
 
 // The actual width is max(minimum_width, heading length, every rendered value).
 // With the default minimum_width=0, no width is imposed arbitrarily.
+//! Describe a column's heading, optional minimum width and alignment.
 struct TableColumn {
     std::string heading;
     std::size_t minimum_width = 0u;
     TableAlignment alignment = TableAlignment::Left;
 };
 
+//! Configure cell separator, optional horizontal rules and grouping indices.
+//! Rows are displayed in insertion order, not sorted by group.
 struct TableOptions {
     std::string separator = "  ";
     char top_rule = '\0';
@@ -34,6 +66,7 @@ struct TableOptions {
     // Keys are zero-based column indices; rows are not reordered.
     std::vector<std::size_t> group_columns;
 
+    //! Return an option set drawing top, heading, group and bottom rules.
     static TableOptions ruled() {
         TableOptions options;
         options.top_rule = '=';
@@ -46,8 +79,10 @@ struct TableOptions {
 
 // A generic table for benchmark measurements AND cross-implementation
 // comparisons. Values are formatted before computing column widths.
+//! Render newline-free textual cells with widths chosen from formatted content.
 class Table {
 public:
+    //! Create a table; validate column count, group indices and separator characters.
     explicit Table(std::vector<TableColumn> columns,
                    TableOptions options = {})
         : _columns(std::move(columns)), _options(std::move(options)) {
@@ -68,6 +103,7 @@ public:
         }
     }
 
+    //! Append a row matching the declared number of columns.
     void add_row(std::vector<std::string> values) {
         if (values.size() != _columns.size())
             throw std::invalid_argument("incorrect number of table values");
@@ -76,6 +112,7 @@ public:
         _rows.push_back(std::move(values));
     }
 
+    //! Render headings and rows with computed widths, alignment and rules.
     std::string str() const {
         // First format all cells, then measure the *displayed strings*.
         std::vector<std::size_t> widths;
@@ -150,6 +187,8 @@ public:
         return output.str();
     }
 
+    //! Format a finite value to fixed decimal precision, or n/a for nonfinite values.
+    //! @throws std::invalid_argument if digits exceeds 30.
     static std::string number(double value, unsigned digits = 3u,
                               std::string suffix = {}) {
         if (digits > 30u)
