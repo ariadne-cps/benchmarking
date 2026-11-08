@@ -1,54 +1,40 @@
-# C++ tutorials
+# C++ tutorial
 
-The tutorials are intentionally progressive: first an ordinary benchmark,
-then a minimal A/B comparison. Both are explicit CMake targets excluded from
-the ordinary production build and the aggregate `benchmarks` target.
-
-## 1. Standalone benchmark: `tutorial_benchmarking`
-
-Source: [tutorial_benchmarking.cpp](tutorial_benchmarking.cpp).
+One source file, one executable: [tutorial_benchmarking.cpp](tutorial_benchmarking.cpp).
 
 ```sh
 cmake --build build-release --target tutorial_benchmarking
 ./build-release/tutorial/tutorial_benchmarking --lengths 64,256 --iterations 100,300 --samples 3 --warmups 1 --concurrency 0 --verbosity 4 --summary min,max,mean,mad
 ```
 
-This first example deliberately demonstrates the richer framework features:
-typed parameter sequences and their Cartesian product, global Threading CLI
-options, Runner-managed warm-ups, separate preparation/timing/verification,
-selectable summary statistics, dynamic-width report columns, numeric alignment,
-table rules and configuration grouping.
+## Part I — ordinary benchmark
 
-Every extra benchmark argument accepts one value or a comma-separated ordered
-list; duplicates are retained, with the last registered axis changing fastest.
-Warm-ups default to zero and do not contribute to the measured samples. The
-default `--summary` selection is `min,max,mean,mad`, with `median,p95,stddev,
-variance,count` also available. Columns are sized using their longest
-fully formatted values.
+The first part demonstrates the more sophisticated features: typed parameter
+sequences, Cartesian combinations, global concurrency and Logging options,
+Runner-managed warm-ups (default zero), explicit input preparation and
+correctness checks outside the timer, configurable summary statistics, dynamic
+column widths, numerical alignment, table rules and grouping.
 
-Verbosity 0 suppresses benchmark messages. Verbosity 1 prints the parameter
-sequences and final summary; 2 adds configuration lifecycle events in a matrix;
-3 adds execution lifecycle events; 4 adds individual sample timings. With a
-single configuration, execution and measurement details each move one level
-closer to the summary.
+The default `--summary` is `min,max,mean,mad`; alternatives include
+`median,p95,stddev,variance,count`. Parameter values may be supplied as ordered
+comma-separated lists and duplicates are preserved. Warm-ups are checked but
+not included in statistics.
 
-## 2. Minimal comparison: `tutorial_comparison`
+Logging levels are 1 for the summary, 2 for configuration lifecycle, 3 for
+per-configuration execution lifecycle and 4 for individual measurements in a
+matrix. With one configuration, execution detail starts at level 2.
 
-Source: [tutorial_comparison.cpp](tutorial_comparison.cpp).
+## Part II — minimal A/B comparison
 
-```sh
-cmake --build build-release --target tutorial_comparison
-./build-release/tutorial/tutorial_comparison --verbosity 1
-```
+The second part executes automatically, after the ordinary benchmark, in the
+**same executable** and with the same globally configured CLI options.
+It uses only two implementation types (`VariantA` and `VariantB`), one
+operation, one fixed configuration, and one report showing the slowdown
+of candidate B relative to reference A. The workload is instantiated at
+compile time per implementation; no virtual dispatch is used by the measured
+operation.
 
-Only the essential A/B concepts appear here: two concrete implementation types
-(`VariantA` and `VariantB`), one equivalent operation, one fixed configuration,
-one reference (`A`) and a single paired report showing the candidate/reference
-slowdown. The templated workload compiles separately for both implementations,
-with no virtual dispatch inside the timed operation. Values above one mean
-the candidate is slower.
-
-More advanced N-way comparisons, multiple operations, parameter matrices and
-independently configured measurement/pair/aggregate reports are supported by
-the framework and tested separately. They do not complicate the introductory
-A/B tutorial.
+The example is synthetic, not a scientific comparison between real arithmetic
+backends. General N-way comparisons and independently configurable raw, paired
+and aggregate reports are tested in the framework but intentionally omitted
+from the introductory A/B portion.

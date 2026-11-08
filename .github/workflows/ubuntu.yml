@@ -72,8 +72,6 @@ jobs:
         run: |
           cmake --build "${{ runner.workspace }}/build" --target tutorial_benchmarking
           "${{ runner.workspace }}/build/tutorial/tutorial_benchmarking" --lengths 32,64 --iterations 100,200 --samples 3 --warmups 1 --verbosity 4
-          cmake --build "${{ runner.workspace }}/build" --target tutorial_comparison
-          "${{ runner.workspace }}/build/tutorial/tutorial_comparison" --verbosity 1
 
 
       - name: Build Debug tests

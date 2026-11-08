@@ -10,6 +10,44 @@
 using namespace Ariadne;
 namespace Bench = Ariadne::Benchmarking;
 
+
+// Part II: minimal A/B, two type-based implementations of one operation.
+struct VariantA {
+    static unsigned increment(unsigned value) { return value + 1u; }
+};
+struct VariantB {
+    static unsigned increment(unsigned value) { return 1u + value; }
+};
+
+static void run_ab_comparison(Bench::CommandLine const& cli) {
+    Bench::Matrix one_configuration;
+    Bench::Runner runner(cli);
+    Bench::ComparisonBattery<VariantA, VariantB> battery({"A", "B"});
+
+    auto workload = []<class Implementation>(auto&& record) {
+        unsigned value = 0u;
+        record("increment",
+            [&] { value = 0u; },
+            [&] {
+                for (unsigned i = 0u; i < 1000u; ++i) {
+                    value = Implementation::increment(value);
+                    Bench::keep_alive(value);
+                }
+            },
+            [&] {
+                if (value != 1000u)
+                    throw std::runtime_error("incorrect increment result");
+            },
+            1000.0);
+    };
+    battery.run(one_configuration, runner, 5u, workload);
+
+    Bench::ComparisonReports reports;
+    reports.add({"A/B", Bench::ComparisonReportKind::Pairs,
+                 {"operation", "reference_ns", "candidate_ns", "slowdown"}});
+    reports.print_all(battery.results(), "A");
+}
+
 int main(int argc, char const* argv[]) {
     try {
         Bench::Parameter<unsigned> lengths("lengths", "Input lengths", {64u,256u});
@@ -74,6 +112,9 @@ int main(int argc, char const* argv[]) {
             runner.configuration_completed(config);
         });
         report.print();
+
+        // Part II: A/B follows the complete non-A/B example.
+        run_ab_comparison(cli);
         return 0;
     } catch (std::exception const& error) {
         LOGGING_PRINTLN("tutorial_benchmarking: " << error.what())

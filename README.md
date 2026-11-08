@@ -75,7 +75,7 @@ Benchmarking a runtime dependency of production libraries.
 
 - `include/benchmarking/`: reusable benchmark tools.
 - `tests/`: isolated, semantic tests of the tools.
-- `tutorial/`: two progressive, buildable C++ tutorials (standalone, then A/B).
+- `tutorial/`: one buildable C++ tutorial with an ordinary benchmark followed by A/B.
 - `ss/`: pinned Build, Threading, Testing submodules.
 - There is deliberately **no `benchmarks/` directory** in this repository.
 
@@ -93,14 +93,13 @@ ctest --test-dir build-debug --output-on-failure
 
 ```sh
 cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
-cmake --build build-release --target tutorial_benchmarking tutorial_comparison
+cmake --build build-release --target tutorial_benchmarking
 ./build-release/tutorial/tutorial_benchmarking --iterations 1000 --samples 7 --warmups 2
-./build-release/tutorial/tutorial_comparison --verbosity 1
 ```
 
-The tutorials progress from a feature-rich single benchmark (including
-parameter matrices, custom summary and table layout) to a deliberately minimal
-A/B comparison with two implementation templates and one paired report.
+The single tutorial progresses from a feature-rich ordinary benchmark
+(including parameter matrices, custom summary and table layout) to a
+minimal A/B comparison with two implementation templates and one paired report.
 See [tutorial/README.md](tutorial/README.md) for the walkthrough.
 
 ## Integration in consumer repositories
@@ -168,5 +167,5 @@ rows, and reports candidate/reference slowdown or its reciprocal speedup.
 raw timing statistics, paired comparisons and aggregate comparisons. Each view
 chooses its own columns and order. Aggregation offers geometric mean slowdown,
 total-time ratio and worst slowdown, either per configuration or over all
-configurations. The tutorial intentionally demonstrates only the simplest A/B
+configurations. The second part of the same tutorial demonstrates only the simplest A/B
 case; full N-way and configurable-report behavior is exercised by tests.
