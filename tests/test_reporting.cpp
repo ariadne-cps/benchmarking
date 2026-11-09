@@ -35,6 +35,36 @@ public:
             "case", "1.000", "2.000", "3.000", "4.000", "5.000", "6.000", "7.000", "8.000", "9"}));
     }
 
+    void test_report_seconds_are_display_only() {
+        Report report("Whole-analysis timing", {
+            SummaryField::Minimum, SummaryField::Mean,
+            SummaryField::Variance, SummaryField::Count});
+        report.set_dimension_columns({{"Operation"}});
+        TableOptions options;
+        options.separator="|";
+        report.set_table_options(options);
+        // All stored values are in nanoseconds (variance in ns^2).
+        Statistics const stats{1e9,2e9,1e9,3e9,0.5e9,3e9,3u,4e18,2e9};
+        report.add_row({"outer_chain_reach"},stats);
+        ARIADNE_TESTING_PROVE(
+            report.table().find("Min (ns)") != std::string::npos);
+        report.set_time_unit(ReportTimeUnit::Seconds);
+        auto const seconds=report.table();
+        ARIADNE_TESTING_PROVE(seconds.find("Min (s)") != std::string::npos);
+        ARIADNE_TESTING_PROVE(seconds.find("Mean (s)") != std::string::npos);
+        ARIADNE_TESTING_PROVE(seconds.find("Variance (s^2)") != std::string::npos);
+        ARIADNE_TESTING_PROVE(seconds.find("(ns)") == std::string::npos);
+        std::istringstream row(seconds.substr(seconds.find('\n')+1u));
+        std::vector<std::string> cells;
+        std::string cell;
+        while(std::getline(row,cell,'|'))cells.push_back(detail::trim(cell));
+        ARIADNE_TESTING_EXPECT_EQUAL(cells,std::vector<std::string>({
+            "outer_chain_reach","1.000","2.000","4.000","3"}));
+        // Changing display units must not change stored samples/statistics.
+        report.set_time_unit(ReportTimeUnit::Nanoseconds);
+        ARIADNE_TESTING_PROVE(report.table().find("Min (ns)") != std::string::npos);
+    }
+
     void test_report_logging() {
         LogCapture capture;
         Report report("Measured results");
@@ -224,6 +254,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_SUITE("Benchmarking reporting");
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_statistic_column_values);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_report_logging);
+    ARIADNE_TESTING_ADD_TEST(TestReporting, test_report_seconds_are_display_only);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_table_validation_and_overflow);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_report_validation);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_report_output_and_single_sample_dispersion);

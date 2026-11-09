@@ -44,6 +44,9 @@
 
 namespace Ariadne::Benchmarking {
 
+//! Display unit for benchmark statistics; input measurements remain ns.
+enum class ReportTimeUnit { Nanoseconds, Seconds };
+
 //! Own statistics rows and render configurable adaptive-width summary tables.
 //! Formatting is separate from timing.
 class Report {
@@ -98,6 +101,10 @@ public:
     //! Return the ordered selected statistics fields.
     SummaryFields const& summary_fields() const { return _columns; }
 
+    //! Only change the report presentation; Runner and Samples still use ns.
+    Void set_time_unit(ReportTimeUnit unit) { _time_unit=unit; }
+    ReportTimeUnit time_unit() const { return _time_unit; }
+
     // Keep the original Report API for existing benchmark clients.
     //! Append a row through the legacy configuration/operation API.
     void add(std::string configuration, std::string operation, Statistics result) {
@@ -115,9 +122,14 @@ public:
     //! Render the report as a string without altering logger settings.
     std::string table() const {
         std::vector<TableColumn> columns = _dimensions;
-        for (SummaryField field : _columns)
-            columns.push_back({std::string(summary_field_heading(field)),
-                               0u, TableAlignment::Right});
+        for (SummaryField field : _columns) {
+            std::string heading(summary_field_heading(field));
+            if (_time_unit==ReportTimeUnit::Seconds) {
+                auto const pos=heading.find("(ns");
+                if (pos!=std::string::npos) heading.replace(pos,3u,"(s");
+            }
+            columns.push_back({std::move(heading),0u,TableAlignment::Right});
+        }
 
         TableOptions options = _options;
         for (auto index : options.group_columns) {
@@ -129,7 +141,7 @@ public:
         for (auto const& row : _rows) {
             std::vector<std::string> cells = row.dimensions;
             for (SummaryField field : _columns)
-                cells.push_back(formatted_value(row.result, field));
+                cells.push_back(formatted_value(row.result, field, _time_unit));
             table.add_row(std::move(cells));
         }
         return table.str();
@@ -149,7 +161,8 @@ private:
         Statistics result;
     };
 
-    static std::string formatted_value(Statistics const& stats, SummaryField field) {
+    static std::string formatted_value(
+            Statistics const& stats, SummaryField field, ReportTimeUnit time_unit) {
         if (field == SummaryField::Count) return std::to_string(stats.count);
         // set_summary_fields() validates every field before storing it.
         // The remaining enum values index the timing statistics in enum order.
@@ -159,12 +172,18 @@ private:
             &Statistics::stddev, &Statistics::variance
         };
         static_assert(std::size(members) == static_cast<std::size_t>(SummaryField::Count));
-        return Table::number(stats.*members[static_cast<std::size_t>(field)]);
+        double value=stats.*members[static_cast<std::size_t>(field)];
+        if(time_unit==ReportTimeUnit::Seconds) {
+            // Variance is the only statistic with squared time dimensions.
+            value /= field==SummaryField::Variance ? 1e18 : 1e9;
+        }
+        return Table::number(value);
     }
 
     std::string _title;
     std::string _parameter_header;
     SummaryFields _columns;
+    ReportTimeUnit _time_unit=ReportTimeUnit::Nanoseconds;
     std::vector<TableColumn> _dimensions;
     TableOptions _options;
     std::vector<Row> _rows;
