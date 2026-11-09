@@ -45,7 +45,30 @@
 namespace Ariadne::Benchmarking {
 
 //! Display unit for benchmark statistics; input measurements remain ns.
-enum class ReportTimeUnit { Nanoseconds, Seconds };
+enum class ReportTimeUnit {
+    Nanoseconds, Microseconds, Milliseconds, Seconds
+};
+
+// Display-only conversion from internally stored nanoseconds.
+inline double report_time_divisor(ReportTimeUnit unit) {
+    switch (unit) {
+        case ReportTimeUnit::Nanoseconds: return 1.0;
+        case ReportTimeUnit::Microseconds: return 1e3;
+        case ReportTimeUnit::Milliseconds: return 1e6;
+        case ReportTimeUnit::Seconds: return 1e9;
+        default: throw std::invalid_argument("invalid report time unit");
+    }
+}
+
+inline std::string_view report_time_suffix(ReportTimeUnit unit) {
+    switch (unit) {
+        case ReportTimeUnit::Nanoseconds: return "ns";
+        case ReportTimeUnit::Microseconds: return "us";
+        case ReportTimeUnit::Milliseconds: return "ms";
+        case ReportTimeUnit::Seconds: return "s";
+        default: throw std::invalid_argument("invalid report time unit");
+    }
+}
 
 //! Own statistics rows and render configurable adaptive-width summary tables.
 //! Formatting is separate from timing.
@@ -102,7 +125,10 @@ public:
     SummaryFields const& summary_fields() const { return _columns; }
 
     //! Only change the report presentation; Runner and Samples still use ns.
-    Void set_time_unit(ReportTimeUnit unit) { _time_unit=unit; }
+    Void set_time_unit(ReportTimeUnit unit) {
+        (void)report_time_divisor(unit); // Reject invalid enum values.
+        _time_unit=unit;
+    }
     ReportTimeUnit time_unit() const { return _time_unit; }
 
     // Keep the original Report API for existing benchmark clients.
@@ -124,9 +150,10 @@ public:
         std::vector<TableColumn> columns = _dimensions;
         for (SummaryField field : _columns) {
             std::string heading(summary_field_heading(field));
-            if (_time_unit==ReportTimeUnit::Seconds) {
+            if (field!=SummaryField::Count) {
                 auto const pos=heading.find("(ns");
-                if (pos!=std::string::npos) heading.replace(pos,3u,"(s");
+                if (pos!=std::string::npos)
+                    heading.replace(pos,3u,"(" + std::string(report_time_suffix(_time_unit)));
             }
             columns.push_back({std::move(heading),0u,TableAlignment::Right});
         }
@@ -173,10 +200,10 @@ private:
         };
         static_assert(std::size(members) == static_cast<std::size_t>(SummaryField::Count));
         double value=stats.*members[static_cast<std::size_t>(field)];
-        if(time_unit==ReportTimeUnit::Seconds) {
-            // Variance is the only statistic with squared time dimensions.
-            value /= field==SummaryField::Variance ? 1e18 : 1e9;
-        }
+        // Variance is in squared time units, all other timing fields
+        // have first-order units. Sample counts are never scaled.
+        double const divisor=report_time_divisor(time_unit);
+        value /= field==SummaryField::Variance ? divisor*divisor : divisor;
         return Table::number(value);
     }
 

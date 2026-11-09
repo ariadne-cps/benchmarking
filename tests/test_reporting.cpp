@@ -65,6 +65,45 @@ public:
         ARIADNE_TESTING_PROVE(report.table().find("Min (ns)") != std::string::npos);
     }
 
+    void test_report_multiple_display_scales() {
+        Report report("Scales",{
+            SummaryField::Minimum,SummaryField::Mean,
+            SummaryField::Stddev,SummaryField::Variance,SummaryField::Count});
+        report.set_dimension_columns({{"Operation"}});
+        TableOptions options;
+        options.separator="|";
+        report.set_table_options(options);
+        Statistics const stats{
+            1e9, 2e9, 1e9, 3e9, 0.5e9, 3e9, 3u, 4e18, 2e9};
+        report.add_row({"reach"},stats);
+        auto check=[&](ReportTimeUnit unit,
+                       std::string const& suffix,
+                       std::string const& minimum,
+                       std::string const& variance) {
+            report.set_time_unit(unit);
+            auto const output=report.table();
+            ARIADNE_TESTING_PROVE(
+                output.find("Min ("+suffix+")")!=std::string::npos);
+            ARIADNE_TESTING_PROVE(
+                output.find("Variance ("+suffix+"^2)")!=std::string::npos);
+            std::istringstream row(output.substr(output.find('\n')+1u));
+            std::vector<std::string> cells;
+            std::string cell;
+            while(std::getline(row,cell,'|'))cells.push_back(detail::trim(cell));
+            ARIADNE_TESTING_EXPECT_EQUAL(cells.front(),std::string("reach"));
+            ARIADNE_TESTING_EXPECT_EQUAL(cells[1],minimum);
+            ARIADNE_TESTING_EXPECT_EQUAL(cells[4],variance);
+            ARIADNE_TESTING_EXPECT_EQUAL(cells[5],std::string("3"));
+        };
+        check(ReportTimeUnit::Nanoseconds,"ns","1000000000.000","4000000000000000000.000");
+        check(ReportTimeUnit::Microseconds,"us","1000000.000","4000000000000.000");
+        check(ReportTimeUnit::Milliseconds,"ms","1000.000","4000000.000");
+        check(ReportTimeUnit::Seconds,"s","1.000","4.000");
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            report.set_time_unit(static_cast<ReportTimeUnit>(-1)));
+        ARIADNE_TESTING_PROVE(report.time_unit()==ReportTimeUnit::Seconds);
+    }
+
     void test_report_logging() {
         LogCapture capture;
         Report report("Measured results");
@@ -255,6 +294,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_statistic_column_values);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_report_logging);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_report_seconds_are_display_only);
+    ARIADNE_TESTING_ADD_TEST(TestReporting, test_report_multiple_display_scales);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_table_validation_and_overflow);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_report_validation);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_report_output_and_single_sample_dispersion);
