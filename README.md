@@ -50,11 +50,15 @@ Benchmark support uses [Logging](https://github.com/ariadne-cps/logging), which 
 [Testing](https://github.com/ariadne-cps/testing) is required only by standalone
 tests. No other Ariadne application module is required. Pinned gitlinks are under `ss/bui`, `ss/log`, and `ss/tst`.
 
-**Benchmarking and Testing are independent opt-in development dependencies.**
-Benchmarking is not linked to production libraries, not installed and not part
-of the ordinary production build. Its repository never runs
-`require_same_dependency_commit`; parents must also exclude the independent
-Testing and Benchmarking gitlinks from cross-module commit-consistency checks.
+**Benchmarking and Testing are independent auxiliary dependencies.**
+Neither becomes a production link dependency or part of the installed production
+library. Only the compilation root selects their checkouts and validates the
+appropriate Build commits. Standalone Benchmarking also verifies its functional
+Logging-to-Build pin. A root with optional Benchmarking must match its Logging
+pin to the active Logging checkout. Nested projects do not run commit checks,
+initialize their own Testing/Benchmarking copies, or add auxiliary targets to
+production libraries. Individual benchmark executables may be included in the
+default `ALL` build, while CI explicitly builds its intended targets.
 
 ### Shared Build compatibility
 

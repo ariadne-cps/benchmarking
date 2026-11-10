@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(Benchmarking VERSION 1.0 LANGUAGES CXX)
+project(Benchmarking VERSION 3.0 LANGUAGES CXX)
 
 option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 if(NOT TARGET ariadne-build)
@@ -15,8 +15,11 @@ if(NOT TARGET ariadne-build)
     include("${CMAKE_CURRENT_SOURCE_DIR}/ss/bui/cmake/ProjectOptions.cmake")
 endif()
 
-# Benchmarking deliberately has NO require_same_dependency_commit checks:
-# neither its gitlink nor Testing's gitlink is a production consistency gate.
+# Validate functional and active auxiliary pins only when Benchmarking is
+# the compilation root. In an embedded build, the parent's validated commits
+# are authoritative; no nested commit checks are performed.
+require_same_dependency_commit(Build CHAINS
+    "build" "logging|build" "testing|build")
 setup_project()
 add_subdirectory(ss)
 
@@ -25,6 +28,8 @@ if(NOT TARGET benchmarking)
     target_include_directories(benchmarking INTERFACE
         "${CMAKE_CURRENT_SOURCE_DIR}/include")
     target_link_libraries(benchmarking INTERFACE logging)
+    # This target serves benchmark executables, never production modules.
+    set_property(TARGET benchmarking PROPERTY ARIADNE_MODULE_ROLE AUXILIARY)
 endif()
 
 # The target and the root-scope registration API are owned by Benchmarking.
@@ -32,10 +37,6 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/BenchmarkingSupport.cmake")
 if(NOT TARGET benchmarks)
     add_custom_target(benchmarks)
 endif()
-if(TARGET everything)
-    add_dependencies(everything benchmarks)
-endif()
-
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     # A standalone test-only archive bundles Logging and its transitive object files.
     # It is NOT exported, installed, or linked into consumers' production code.
