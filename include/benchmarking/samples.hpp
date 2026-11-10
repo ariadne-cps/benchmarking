@@ -37,7 +37,7 @@ namespace Ariadne::Benchmarking {
 
 //! Own an ordered collection of measured or normalized nanosecond timings.
 class Samples {
-public:
+  public:
     //! Append a finite, nonnegative duration in nanoseconds.
     //! @throws std::invalid_argument for negative or nonfinite values.
     void add(double elapsed) {
@@ -46,10 +46,11 @@ public:
         _values.push_back(elapsed);
     }
     //! Return stored timing observations in insertion order.
-    std::vector<double> const& values() const { return _values; }
+    const std::vector<double>& values() const { return _values; }
     //! Return the number of recorded observations.
     std::size_t size() const { return _values.size(); }
-private:
+
+  private:
     std::vector<double> _values;
 };
 } // namespace Ariadne::Benchmarking

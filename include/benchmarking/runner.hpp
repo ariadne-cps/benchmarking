@@ -29,11 +29,6 @@
 #ifndef ARIADNE_BENCHMARKING_RUNNER_HPP
 #define ARIADNE_BENCHMARKING_RUNNER_HPP
 
-#include "benchmarking/command_line.hpp"
-#include "benchmarking/run_logging.hpp"
-#include "benchmarking/samples.hpp"
-#include "benchmarking/timing.hpp"
-
 #include <cmath>
 #include <cstddef>
 #include <functional>
@@ -41,6 +36,11 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+
+#include "benchmarking/command_line.hpp"
+#include "benchmarking/run_logging.hpp"
+#include "benchmarking/samples.hpp"
+#include "benchmarking/timing.hpp"
 
 namespace Ariadne::Benchmarking {
 
@@ -54,9 +54,9 @@ namespace Ariadne::Benchmarking {
 //! Run preparation, timed operation and verification for every round.
 //! Warm-ups run and are validated but are omitted from the resulting Samples.
 class Runner {
-public:
+  public:
     //! Initialize warm-up policy from CLI and configure matrix-aware logging.
-    explicit Runner(CommandLine const& command_line,
+    explicit Runner(const CommandLine& command_line,
                     std::size_t configurations = 1u)
         : Runner(command_line.warmups(), configurations) {}
 
@@ -68,12 +68,12 @@ public:
     unsigned warmups() const { return _warmups; }
 
     //! Log the beginning of a configuration.
-    void configuration_started(Configuration const& configuration) const {
+    void configuration_started(const Configuration& configuration) const {
         _log.configuration_started(configuration);
     }
 
     //! Log the completion of a configuration.
-    void configuration_completed(Configuration const& configuration) const {
+    void configuration_completed(const Configuration& configuration) const {
         _log.configuration_completed(configuration);
     }
 
@@ -88,7 +88,7 @@ public:
     //! @return Exactly samples normalized timings in nanoseconds.
     //! @throws std::invalid_argument for zero samples or invalid normalization.
     //! @note Callback exceptions propagate unchanged.
-    Samples run(std::string const& name, unsigned samples,
+    Samples run(const std::string& name, unsigned samples,
                 Prepare&& prepare, Operation&& operation, Verify&& verify,
                 double normalization = 1.0) const {
         if (samples == 0u)
@@ -99,18 +99,18 @@ public:
             throw std::overflow_error("warm-up and sample count overflow");
 
         Samples result;
-        unsigned const total = samples + _warmups;
+        const unsigned total = samples + _warmups;
         for (unsigned round = 0u; round < total; ++round) {
-            bool const warmup = round < _warmups;
-            std::size_t const ordinal = static_cast<std::size_t>(round) + 1u;
+            const bool warmup = round < _warmups;
+            const std::size_t ordinal = static_cast<std::size_t>(round) + 1u;
             _log.execution_started(name, ordinal, warmup);
             std::invoke(prepare);
-            double const elapsed = measure_ns([&operation] {
+            const double elapsed = measure_ns([&operation] {
                 std::invoke(operation);
             });
             std::invoke(verify);
             if (not warmup) {
-                double const normalized = elapsed / normalization;
+                const double normalized = elapsed / normalization;
                 result.add(normalized);
                 _log.measurement(name, ordinal, elapsed, normalized);
             }
@@ -119,7 +119,7 @@ public:
         return result;
     }
 
-private:
+  private:
     unsigned _warmups;
     RunLog _log;
 };

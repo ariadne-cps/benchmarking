@@ -29,11 +29,6 @@
 #ifndef ARIADNE_BENCHMARKING_REPORTING_HPP
 #define ARIADNE_BENCHMARKING_REPORTING_HPP
 
-#include "benchmarking/statistics.hpp"
-#include "benchmarking/summary_fields.hpp"
-#include "benchmarking/table.hpp"
-#include "logging/logging.hpp"
-
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
@@ -42,45 +37,63 @@
 #include <utility>
 #include <vector>
 
+#include "benchmarking/statistics.hpp"
+#include "benchmarking/summary_fields.hpp"
+#include "benchmarking/table.hpp"
+#include "logging/logging.hpp"
+
 namespace Ariadne::Benchmarking {
 
 //! Display unit for benchmark statistics; input measurements remain ns.
 enum class ReportTimeUnit {
-    Nanoseconds, Microseconds, Milliseconds, Seconds
+    Nanoseconds,
+    Microseconds,
+    Milliseconds,
+    Seconds
 };
 
 // Display-only conversion from internally stored nanoseconds.
 inline double report_time_divisor(ReportTimeUnit unit) {
     switch (unit) {
-        case ReportTimeUnit::Nanoseconds: return 1.0;
-        case ReportTimeUnit::Microseconds: return 1e3;
-        case ReportTimeUnit::Milliseconds: return 1e6;
-        case ReportTimeUnit::Seconds: return 1e9;
-        default: throw std::invalid_argument("invalid report time unit");
+        case ReportTimeUnit::Nanoseconds:
+            return 1.0;
+        case ReportTimeUnit::Microseconds:
+            return 1e3;
+        case ReportTimeUnit::Milliseconds:
+            return 1e6;
+        case ReportTimeUnit::Seconds:
+            return 1e9;
+        default:
+            throw std::invalid_argument("invalid report time unit");
     }
 }
 
 inline std::string_view report_time_suffix(ReportTimeUnit unit) {
     switch (unit) {
-        case ReportTimeUnit::Nanoseconds: return "ns";
-        case ReportTimeUnit::Microseconds: return "us";
-        case ReportTimeUnit::Milliseconds: return "ms";
-        case ReportTimeUnit::Seconds: return "s";
-        default: throw std::invalid_argument("invalid report time unit");
+        case ReportTimeUnit::Nanoseconds:
+            return "ns";
+        case ReportTimeUnit::Microseconds:
+            return "us";
+        case ReportTimeUnit::Milliseconds:
+            return "ms";
+        case ReportTimeUnit::Seconds:
+            return "s";
+        default:
+            throw std::invalid_argument("invalid report time unit");
     }
 }
 
 //! Own statistics rows and render configurable adaptive-width summary tables.
 //! Formatting is separate from timing.
 class Report {
-public:
+  public:
     //! Construct a named report with a selected ordered set of statistic columns.
     explicit Report(std::string title, SummaryFields columns = default_summary_fields())
         : _title(std::move(title)) {
         set_summary_fields(std::move(columns));
         _dimensions = {
             {"Configuration", 0u, TableAlignment::Left},
-            {"Operation", 0u, TableAlignment::Left}
+            {    "Operation", 0u, TableAlignment::Left}
         };
     }
 
@@ -94,7 +107,7 @@ public:
         if (fields.empty())
             throw std::invalid_argument("summary columns cannot be empty");
         SummaryFields checked;
-        for (SummaryField field : fields) {
+        for (SummaryField field: fields) {
             (void)summary_field_id(field);
             if (std::find(checked.begin(), checked.end(), field) != checked.end())
                 throw std::invalid_argument("duplicate summary column");
@@ -109,7 +122,7 @@ public:
     void set_dimension_columns(std::vector<TableColumn> dimensions) {
         if (dimensions.empty())
             throw std::invalid_argument("report needs descriptive columns");
-        for (auto const& row : _rows) {
+        for (const auto& row: _rows) {
             if (row.dimensions.size() != dimensions.size())
                 throw std::invalid_argument("existing rows have different dimensions");
         }
@@ -122,12 +135,12 @@ public:
     }
 
     //! Return the ordered selected statistics fields.
-    SummaryFields const& summary_fields() const { return _columns; }
+    const SummaryFields& summary_fields() const { return _columns; }
 
     //! Only change the report presentation; Runner and Samples still use ns.
     Void set_time_unit(ReportTimeUnit unit) {
         (void)report_time_divisor(unit); // Reject invalid enum values.
-        _time_unit=unit;
+        _time_unit = unit;
     }
     ReportTimeUnit time_unit() const { return _time_unit; }
 
@@ -148,26 +161,26 @@ public:
     //! Render the report as a string without altering logger settings.
     std::string table() const {
         std::vector<TableColumn> columns = _dimensions;
-        for (SummaryField field : _columns) {
+        for (SummaryField field: _columns) {
             std::string heading(summary_field_heading(field));
-            if (field!=SummaryField::Count) {
-                auto const pos=heading.find("(ns");
-                if (pos!=std::string::npos)
-                    heading.replace(pos,3u,"(" + std::string(report_time_suffix(_time_unit)));
+            if (field != SummaryField::Count) {
+                const auto pos = heading.find("(ns");
+                if (pos != std::string::npos)
+                    heading.replace(pos, 3u, "(" + std::string(report_time_suffix(_time_unit)));
             }
-            columns.push_back({std::move(heading),0u,TableAlignment::Right});
+            columns.push_back({std::move(heading), 0u, TableAlignment::Right});
         }
 
         TableOptions options = _options;
-        for (auto index : options.group_columns) {
+        for (auto index: options.group_columns) {
             if (index >= _dimensions.size())
                 throw std::invalid_argument("report grouping needs a dimension");
         }
 
         Table table(std::move(columns), std::move(options));
-        for (auto const& row : _rows) {
+        for (const auto& row: _rows) {
             std::vector<std::string> cells = row.dimensions;
-            for (SummaryField field : _columns)
+            for (SummaryField field: _columns)
                 cells.push_back(formatted_value(row.result, field, _time_unit));
             table.add_row(std::move(cells));
         }
@@ -182,35 +195,35 @@ public:
         LOGGING_PRINTLN(table())
     }
 
-private:
+  private:
     struct Row {
         std::vector<std::string> dimensions;
         Statistics result;
     };
 
     static std::string formatted_value(
-            Statistics const& stats, SummaryField field, ReportTimeUnit time_unit) {
-        if (field == SummaryField::Count) return std::to_string(stats.count);
+        const Statistics& stats, SummaryField field, ReportTimeUnit time_unit) {
+        if (field == SummaryField::Count)
+            return std::to_string(stats.count);
         // set_summary_fields() validates every field before storing it.
         // The remaining enum values index the timing statistics in enum order.
         constexpr double Statistics::* members[] = {
             &Statistics::minimum, &Statistics::maximum, &Statistics::mean,
             &Statistics::mad, &Statistics::median, &Statistics::p95,
-            &Statistics::stddev, &Statistics::variance
-        };
+            &Statistics::stddev, &Statistics::variance};
         static_assert(std::size(members) == static_cast<std::size_t>(SummaryField::Count));
-        double value=stats.*members[static_cast<std::size_t>(field)];
+        double value = stats.*members[static_cast<std::size_t>(field)];
         // Variance is in squared time units, all other timing fields
         // have first-order units. Sample counts are never scaled.
-        double const divisor=report_time_divisor(time_unit);
-        value /= field==SummaryField::Variance ? divisor*divisor : divisor;
+        const double divisor = report_time_divisor(time_unit);
+        value /= field == SummaryField::Variance ? divisor * divisor : divisor;
         return Table::number(value);
     }
 
     std::string _title;
     std::string _parameter_header;
     SummaryFields _columns;
-    ReportTimeUnit _time_unit=ReportTimeUnit::Nanoseconds;
+    ReportTimeUnit _time_unit = ReportTimeUnit::Nanoseconds;
     std::vector<TableColumn> _dimensions;
     TableOptions _options;
     std::vector<Row> _rows;

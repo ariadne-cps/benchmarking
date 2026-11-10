@@ -45,9 +45,9 @@ using Duration = std::chrono::duration<double, std::nano>;
 template<class F>
 //! Measure one invocation in nanoseconds, propagating callback exceptions.
 double measure_ns(F&& operation) {
-    auto const start = Clock::now();
+    const auto start = Clock::now();
     std::invoke(std::forward<F>(operation));
-    auto const end = Clock::now();
+    const auto end = Clock::now();
     return Duration(end - start).count();
 }
 

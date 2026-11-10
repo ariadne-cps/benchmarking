@@ -39,18 +39,18 @@ namespace Ariadne::Benchmarking {
 //! Return baseline/candidate; values above one mean the candidate is faster.
 //! @throws std::invalid_argument for nonpositive or nonfinite timings.
 inline double speedup(double baseline, double candidate) {
-    if (not std::isfinite(baseline) or not std::isfinite(candidate)
-        or baseline <= 0.0 or candidate <= 0.0)
+    if (not std::isfinite(baseline) or not std::isfinite(candidate) or baseline <= 0.0 or candidate <= 0.0)
         throw std::invalid_argument("invalid timing ratio");
     return baseline / candidate;
 }
 
 //! Compute a geometric mean of positive finite ratios.
 //! @throws std::invalid_argument for empty or invalid input.
-inline double geometric_mean(std::vector<double> const& ratios) {
-    if (ratios.empty()) throw std::invalid_argument("empty ratio collection");
+inline double geometric_mean(const std::vector<double>& ratios) {
+    if (ratios.empty())
+        throw std::invalid_argument("empty ratio collection");
     double sum = 0.0;
-    for (double r : ratios) {
+    for (double r: ratios) {
         if (not std::isfinite(r) or r <= 0.0)
             throw std::invalid_argument("invalid ratio");
         sum += std::log(r);

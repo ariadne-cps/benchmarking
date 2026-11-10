@@ -29,10 +29,11 @@
 #ifndef ARIADNE_BENCHMARKING_CALIBRATION_HPP
 #define ARIADNE_BENCHMARKING_CALIBRATION_HPP
 
-#include "benchmarking/timing.hpp"
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+
+#include "benchmarking/timing.hpp"
 
 namespace Ariadne::Benchmarking {
 
@@ -48,13 +49,11 @@ namespace Ariadne::Benchmarking {
 //! @throws std::overflow_error for nonfinite results.
 //! @note Never invokes the operation, since it may mutate its inputs.
 inline unsigned calibrated_repetitions(double pilot_ns,
-        double minimum_ns, unsigned pilot_repetitions,
-        unsigned maximum_repetitions) {
-    if (not std::isfinite(pilot_ns) or pilot_ns <= 0.0
-        or not std::isfinite(minimum_ns) or minimum_ns <= 0.0
-        or pilot_repetitions == 0u or maximum_repetitions == 0u)
+                                       double minimum_ns, unsigned pilot_repetitions,
+                                       unsigned maximum_repetitions) {
+    if (not std::isfinite(pilot_ns) or pilot_ns <= 0.0 or not std::isfinite(minimum_ns) or minimum_ns <= 0.0 or pilot_repetitions == 0u or maximum_repetitions == 0u)
         throw std::invalid_argument("invalid calibration parameters");
-    double const needed = std::ceil(
+    const double needed = std::ceil(
         minimum_ns / pilot_ns * static_cast<double>(pilot_repetitions));
     if (not std::isfinite(needed))
         throw std::overflow_error("calibration overflow");

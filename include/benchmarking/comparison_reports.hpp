@@ -29,10 +29,6 @@
 #ifndef ARIADNE_BENCHMARKING_COMPARISON_REPORTS_HPP
 #define ARIADNE_BENCHMARKING_COMPARISON_REPORTS_HPP
 
-#include "benchmarking/comparison_results.hpp"
-#include "benchmarking/table.hpp"
-#include "logging/logging.hpp"
-
 #include <algorithm>
 #include <map>
 #include <stdexcept>
@@ -40,10 +36,16 @@
 #include <utility>
 #include <vector>
 
+#include "benchmarking/comparison_results.hpp"
+#include "benchmarking/table.hpp"
+#include "logging/logging.hpp"
+
 namespace Ariadne::Benchmarking {
 
 //! Select raw measurements, paired ratios or aggregated ratios.
-enum class ComparisonReportKind { Measurements, Pairs, Aggregates };
+enum class ComparisonReportKind { Measurements,
+                                  Pairs,
+                                  Aggregates };
 
 //! Describe one independently configured, named view and its column order.
 struct ComparisonReportDefinition {
@@ -71,12 +73,12 @@ struct ComparisonReportDefinition {
 // never influence which measurements are executed or retained.
 //! Render any number of views over the same retained measurements.
 class ComparisonReports {
-public:
+  public:
     //! Add a view, rejecting missing names or columns and duplicates.
     void add(ComparisonReportDefinition definition) {
         if (definition.name.empty() or definition.columns.empty())
             throw std::invalid_argument("report name and columns are mandatory");
-        for (auto const& existing : _definitions) {
+        for (const auto& existing: _definitions) {
             if (existing.name == definition.name)
                 throw std::invalid_argument("duplicate comparison report name");
         }
@@ -95,22 +97,23 @@ public:
     //! Return standard raw, paired and aggregate view definitions.
     static ComparisonReports standard() {
         ComparisonReports reports;
-        reports.add({"measurements", ComparisonReportKind::Measurements,
-            {"implementation","operation","configuration","median"}});
-        reports.add({"pairs", ComparisonReportKind::Pairs,
-            {"candidate","operation","configuration",
-             "reference_ns","candidate_ns","slowdown"}});
-        reports.add({"aggregates", ComparisonReportKind::Aggregates,
-            {"candidate","configuration","operations",
-             "geomean","total_time","worst","worst_operation"}});
+        reports.add({
+            "measurements", ComparisonReportKind::Measurements, {"implementation", "operation", "configuration", "median"}
+        });
+        reports.add({
+            "pairs", ComparisonReportKind::Pairs, {"candidate", "operation", "configuration", "reference_ns", "candidate_ns", "slowdown"}
+        });
+        reports.add({
+            "aggregates", ComparisonReportKind::Aggregates, {"candidate", "configuration", "operations", "geomean", "total_time", "worst", "worst_operation"}
+        });
         return reports;
     }
 
     //! Render one named view against a chosen reference implementation.
-    std::string render(std::string const& name,
-                       ComparisonResults const& results,
-                       std::string const& reference) const {
-        for (auto const& definition : _definitions) {
+    std::string render(const std::string& name,
+                       const ComparisonResults& results,
+                       const std::string& reference) const {
+        for (const auto& definition: _definitions) {
             if (definition.name == name)
                 return render_definition(definition, results, reference);
         }
@@ -118,11 +121,12 @@ public:
     }
 
     //! Render each configured view, separated by blank lines.
-    std::string render_all(ComparisonResults const& results,
-                           std::string const& reference) const {
+    std::string render_all(const ComparisonResults& results,
+                           const std::string& reference) const {
         std::string output;
-        for (auto const& definition : _definitions) {
-            if (not output.empty()) output += "\n\n";
+        for (const auto& definition: _definitions) {
+            if (not output.empty())
+                output += "\n\n";
             output += definition.name + "\n";
             output += render_definition(definition, results, reference);
         }
@@ -131,27 +135,35 @@ public:
 
     //! Write all rendered views at the current Logging level.
     //! At the root scope this is visible with --verbosity 1.
-    void print_all(ComparisonResults const& results,
-                   std::string const& reference) const {
+    void print_all(const ComparisonResults& results,
+                   const std::string& reference) const {
         LOGGING_PRINTLN(render_all(results, reference))
     }
 
-private:
+  private:
     using Cells = std::map<std::string, std::string>;
 
-    static std::string heading(std::string const& name) {
-        static std::map<std::string, std::string> const headings{
-            {"implementation","Implementation"},{"operation","Operation"},
-            {"configuration","Configuration"},{"reference","Reference"},
-            {"candidate","Candidate"},
-            {"reference_ns","Reference (ns)"},{"candidate_ns","Candidate (ns)"},
-            {"slowdown","Slowdown (x)"},{"speedup","Speedup (x)"},
-            {"operations","Operations"},{"geomean","Geomean (x)"},
-            {"total_time","Total time (x)"},{"worst","Worst (x)"},
-            {"worst_operation","Worst operation"},
-            {"worst_configuration","Worst configuration"}};
-        auto const found = headings.find(name);
-        if (found != headings.end()) return found->second;
+    static std::string heading(const std::string& name) {
+        static const std::map<std::string, std::string> headings{
+            {     "implementation",      "Implementation"},
+            {          "operation",           "Operation"},
+            {      "configuration",       "Configuration"},
+            {          "reference",           "Reference"},
+            {          "candidate",           "Candidate"},
+            {       "reference_ns",      "Reference (ns)"},
+            {       "candidate_ns",      "Candidate (ns)"},
+            {           "slowdown",        "Slowdown (x)"},
+            {            "speedup",         "Speedup (x)"},
+            {         "operations",          "Operations"},
+            {            "geomean",         "Geomean (x)"},
+            {         "total_time",      "Total time (x)"},
+            {              "worst",           "Worst (x)"},
+            {    "worst_operation",     "Worst operation"},
+            {"worst_configuration", "Worst configuration"}
+        };
+        const auto found = headings.find(name);
+        if (found != headings.end())
+            return found->second;
         if (name.compare(0u, 6u, "param:") == 0)
             return name.substr(6u);
         // render_definition() validates the schema before requesting headings.
@@ -159,13 +171,13 @@ private:
         return std::string(summary_field_heading(parse_summary_fields(name).front()));
     }
 
-    static void dimensions(Cells& cells, ComparisonContext const& context) {
+    static void dimensions(Cells& cells, const ComparisonContext& context) {
         cells.emplace("configuration", context.label);
-        for (auto const& [name, value] : context.dimensions)
+        for (const auto& [name, value]: context.dimensions)
             cells.emplace("param:" + name, value);
     }
 
-    static void statistics(Cells& cells, Statistics const& stats) {
+    static void statistics(Cells& cells, const Statistics& stats) {
         cells.emplace("min", Table::number(stats.minimum));
         cells.emplace("max", Table::number(stats.maximum));
         cells.emplace("mean", Table::number(stats.mean));
@@ -177,7 +189,7 @@ private:
         cells.emplace("count", std::to_string(stats.count));
     }
 
-    static bool numeric(std::string const& field) {
+    static bool numeric(const std::string& field) {
         return field == "min" or field == "max" or field == "mean" or
                field == "mad" or field == "median" or field == "p95" or
                field == "stddev" or field == "variance" or field == "count" or
@@ -187,12 +199,12 @@ private:
                field == "total_time" or field == "worst";
     }
 
-    static std::string render_definition(ComparisonReportDefinition const& def,
-                                         ComparisonResults const& results,
-                                         std::string const& reference) {
+    static std::string render_definition(const ComparisonReportDefinition& def,
+                                         const ComparisonResults& results,
+                                         const std::string& reference) {
         std::vector<Cells> data;
         if (def.kind == ComparisonReportKind::Measurements) {
-            for (auto const& measurement : results.measurements()) {
+            for (const auto& measurement: results.measurements()) {
                 Cells row;
                 row.emplace("implementation", measurement.implementation);
                 row.emplace("operation", measurement.operation);
@@ -201,7 +213,7 @@ private:
                 data.push_back(std::move(row));
             }
         } else if (def.kind == ComparisonReportKind::Pairs) {
-            for (auto const& pair : results.paired(reference, def.metric)) {
+            for (const auto& pair: results.paired(reference, def.metric)) {
                 Cells row;
                 row.emplace("reference", pair.reference);
                 row.emplace("candidate", pair.candidate);
@@ -214,7 +226,7 @@ private:
                 data.push_back(std::move(row));
             }
         } else {
-            for (auto const& aggregate : results.aggregates(
+            for (const auto& aggregate: results.aggregates(
                      reference, def.by_configuration, def.metric)) {
                 Cells row;
                 row.emplace("reference", aggregate.reference);
@@ -233,23 +245,23 @@ private:
         // measurements exist, instead of silently printing empty cells.
         Cells allowed;
         if (def.kind == ComparisonReportKind::Measurements) {
-            for (auto const& field : {"implementation","operation","configuration",
-                "min","max","mean","mad","median","p95","stddev","variance","count"})
-                allowed.emplace(field,"");
+            for (const auto& field: {"implementation", "operation", "configuration",
+                                     "min", "max", "mean", "mad", "median", "p95", "stddev", "variance", "count"})
+                allowed.emplace(field, "");
         } else if (def.kind == ComparisonReportKind::Pairs) {
-            for (auto const& field : {"reference","candidate","operation",
-                                     "configuration","reference_ns",
-                                     "candidate_ns","slowdown","speedup"})
-                allowed.emplace(field,"");
+            for (const auto& field: {"reference", "candidate", "operation",
+                                     "configuration", "reference_ns",
+                                     "candidate_ns", "slowdown", "speedup"})
+                allowed.emplace(field, "");
         } else {
-            for (auto const& field : {"reference","candidate","configuration",
-                "operations","geomean","total_time","worst",
-                "worst_operation","worst_configuration"})
-                allowed.emplace(field,"");
+            for (const auto& field: {"reference", "candidate", "configuration",
+                                     "operations", "geomean", "total_time", "worst",
+                                     "worst_operation", "worst_configuration"})
+                allowed.emplace(field, "");
         }
 
         std::vector<TableColumn> columns;
-        for (auto const& field : def.columns) {
+        for (const auto& field: def.columns) {
             if (field.compare(0u, 6u, "param:") == 0) {
                 if (def.kind == ComparisonReportKind::Aggregates)
                     throw std::invalid_argument(
@@ -257,23 +269,23 @@ private:
                 // Empty collections cannot establish available dimensions.
                 if (data.empty())
                     throw std::invalid_argument("no measurements for dimension selection");
-                for (auto const& row : data) {
+                for (const auto& row: data) {
                     if (row.find(field) == row.end())
                         throw std::invalid_argument("missing report parameter: " + field);
                 }
             } else if (allowed.find(field) == allowed.end()) {
                 throw std::invalid_argument("unsupported report column: " + field);
             }
-            columns.push_back({heading(field),0u,
+            columns.push_back({heading(field), 0u,
                                numeric(field) ? TableAlignment::Right
                                               : TableAlignment::Left});
         }
 
         Table table(std::move(columns), def.options);
-        for (auto const& item : data) {
+        for (const auto& item: data) {
             std::vector<std::string> cells;
             cells.reserve(def.columns.size());
-            for (auto const& field : def.columns)
+            for (const auto& field: def.columns)
                 cells.push_back(item.at(field));
             table.add_row(std::move(cells));
         }

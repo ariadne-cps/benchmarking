@@ -43,7 +43,8 @@
 namespace Ariadne::Benchmarking {
 
 //! Select horizontal alignment of a column.
-enum class TableAlignment { Left, Right };
+enum class TableAlignment { Left,
+                            Right };
 
 // The actual width is max(minimum_width, heading length, every rendered value).
 // With the default minimum_width=0, no width is imposed arbitrarily.
@@ -81,23 +82,23 @@ struct TableOptions {
 // comparisons. Values are formatted before computing column widths.
 //! Render newline-free textual cells with widths chosen from formatted content.
 class Table {
-public:
+  public:
     //! Create a table; validate column count, group indices and separator characters.
     explicit Table(std::vector<TableColumn> columns,
                    TableOptions options = {})
         : _columns(std::move(columns)), _options(std::move(options)) {
         if (_columns.empty())
             throw std::invalid_argument("a table requires columns");
-        for (auto const& column : _columns)
+        for (const auto& column: _columns)
             validate_cell(column.heading);
-        for (auto index : _options.group_columns) {
+        for (auto index: _options.group_columns) {
             if (index >= _columns.size())
                 throw std::invalid_argument("invalid table group column");
         }
         if (_options.separator.find_first_of("\r\n") != std::string::npos)
             throw std::invalid_argument("table separator cannot contain a newline");
-        for (char symbol : { _options.top_rule, _options.header_rule,
-                             _options.group_rule, _options.bottom_rule }) {
+        for (char symbol: {_options.top_rule, _options.header_rule,
+                           _options.group_rule, _options.bottom_rule}) {
             if (symbol == '\r' or symbol == '\n')
                 throw std::invalid_argument("invalid table rule character");
         }
@@ -107,7 +108,7 @@ public:
     void add_row(std::vector<std::string> values) {
         if (values.size() != _columns.size())
             throw std::invalid_argument("incorrect number of table values");
-        for (auto const& value : values)
+        for (const auto& value: values)
             validate_cell(value);
         _rows.push_back(std::move(values));
     }
@@ -117,14 +118,14 @@ public:
         // First format all cells, then measure the *displayed strings*.
         std::vector<std::size_t> widths;
         widths.reserve(_columns.size());
-        for (auto const& column : _columns)
+        for (const auto& column: _columns)
             widths.push_back(std::max(column.minimum_width, column.heading.size()));
-        for (auto const& row : _rows) {
+        for (const auto& row: _rows) {
             for (std::size_t i = 0u; i < row.size(); ++i)
                 widths[i] = std::max(widths[i], row[i].size());
         }
 
-        std::size_t const spacing = _options.separator.size();
+        const std::size_t spacing = _options.separator.size();
         std::size_t width = 0u;
         for (std::size_t i = 0u; i < widths.size(); ++i) {
             if (widths[i] > std::numeric_limits<std::size_t>::max() - width)
@@ -139,8 +140,9 @@ public:
 
         std::ostringstream output;
         bool first_line = true;
-        auto append_line = [&](std::string const& line) {
-            if (not first_line) output << '\n';
+        auto append_line = [&](const std::string& line) {
+            if (not first_line)
+                output << '\n';
             output << line;
             first_line = false;
         };
@@ -148,12 +150,13 @@ public:
             if (symbol != '\0')
                 append_line(std::string(width, symbol));
         };
-        auto render = [&](std::vector<std::string> const& values) {
+        auto render = [&](const std::vector<std::string>& values) {
             std::string line;
             line.reserve(width);
             for (std::size_t i = 0u; i < values.size(); ++i) {
-                if (i != 0u) line += _options.separator;
-                std::size_t const pad = widths[i] - values[i].size();
+                if (i != 0u)
+                    line += _options.separator;
+                const std::size_t pad = widths[i] - values[i].size();
                 if (_columns[i].alignment == TableAlignment::Right)
                     line.append(pad, ' ');
                 line += values[i];
@@ -166,20 +169,21 @@ public:
         rule(_options.top_rule);
         std::vector<std::string> headings;
         headings.reserve(_columns.size());
-        for (auto const& column : _columns)
+        for (const auto& column: _columns)
             headings.push_back(column.heading);
         render(headings);
         rule(_options.header_rule);
         for (std::size_t i = 0u; i < _rows.size(); ++i) {
             if (i != 0u and _options.group_rule != '\0') {
                 bool changed = false;
-                for (auto index : _options.group_columns) {
-                    if (_rows[i-1u][index] != _rows[i][index]) {
+                for (auto index: _options.group_columns) {
+                    if (_rows[i - 1u][index] != _rows[i][index]) {
                         changed = true;
                         break;
                     }
                 }
-                if (changed) rule(_options.group_rule);
+                if (changed)
+                    rule(_options.group_rule);
             }
             render(_rows[i]);
         }
@@ -193,15 +197,16 @@ public:
                               std::string suffix = {}) {
         if (digits > 30u)
             throw std::invalid_argument("table precision is too high");
-        if (not std::isfinite(value)) return "n/a";
+        if (not std::isfinite(value))
+            return "n/a";
         std::ostringstream output;
         output << std::fixed << std::setprecision(static_cast<int>(digits))
                << value << suffix;
         return output.str();
     }
 
-private:
-    static void validate_cell(std::string const& value) {
+  private:
+    static void validate_cell(const std::string& value) {
         if (value.find_first_of("\r\n") != std::string::npos)
             throw std::invalid_argument("table values must be single-line");
     }

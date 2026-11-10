@@ -37,11 +37,11 @@ namespace Ariadne::Benchmarking {
 template<class T>
 //! Keep a computed value observable without printing during the measurement.
 //! @note An optimization barrier is not a correctness assertion or CPU synchronization primitive.
-void keep_alive(T const& value) {
+void keep_alive(const T& value) {
 #if defined(__GNUC__) || defined(__clang__)
     asm volatile("" : : "g"(&value) : "memory");
 #else
-    static void const* volatile sink = nullptr;
+    static const void* volatile sink = nullptr;
     sink = &value;
     std::atomic_signal_fence(std::memory_order_seq_cst);
 #endif

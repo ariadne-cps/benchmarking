@@ -29,8 +29,6 @@
 #ifndef ARIADNE_BENCHMARKING_PARAMETERS_HPP
 #define ARIADNE_BENCHMARKING_PARAMETERS_HPP
 
-#include "utility/command_line_interface.hpp"
-
 #include <algorithm>
 #include <cctype>
 #include <functional>
@@ -43,12 +41,14 @@
 #include <utility>
 #include <vector>
 
+#include "utility/command_line_interface.hpp"
+
 namespace Ariadne::Benchmarking {
 
 namespace detail {
 
-inline std::string trim(std::string const& value) {
-    auto const is_space = [](unsigned char c) { return std::isspace(c) != 0; };
+inline std::string trim(const std::string& value) {
+    const auto is_space = [](unsigned char c) { return std::isspace(c) != 0; };
     auto first = std::find_if_not(value.begin(), value.end(), is_space);
     auto last = std::find_if_not(value.rbegin(), value.rend(), is_space).base();
     return first >= last ? std::string() : std::string(first, last);
@@ -56,13 +56,13 @@ inline std::string trim(std::string const& value) {
 
 // CSV with quoted items and backslash escapes (e.g. "a,b",c or a\\,b,c).
 // Invalid or empty unquoted items are rejected instead of being skipped.
-inline std::vector<std::string> split_values(std::string const& input) {
+inline std::vector<std::string> split_values(const std::string& input) {
     std::vector<std::string> tokens;
     std::string token;
     bool quoted = false;
     bool escaped = false;
     bool had_quotes = false;
-    for (char ch : input) {
+    for (char ch: input) {
         if (escaped) {
             token += ch;
             escaped = false;
@@ -92,8 +92,8 @@ inline std::vector<std::string> split_values(std::string const& input) {
 }
 
 template<class T>
-T parse_value(std::string const& text) {
-    if constexpr (std::is_same_v<T,std::string>) {
+T parse_value(const std::string& text) {
+    if constexpr (std::is_same_v<T, std::string>) {
         return text;
     } else {
         if constexpr (std::is_integral_v<T> and std::is_unsigned_v<T>) {
@@ -102,7 +102,7 @@ T parse_value(std::string const& text) {
         }
         std::istringstream stream(text);
         T result{};
-        if (not (stream >> result))
+        if (not(stream >> result))
             throw std::invalid_argument("invalid parameter value");
         stream >> std::ws;
         if (not stream.eof())
@@ -112,13 +112,13 @@ T parse_value(std::string const& text) {
 }
 
 template<class T>
-std::string format_value(T const& value) {
+std::string format_value(const T& value) {
     std::ostringstream out;
     out << std::boolalpha << value;
     return out.str();
 }
 
-inline std::string quote_if_needed(std::string const& text) {
+inline std::string quote_if_needed(const std::string& text) {
     if (text.find(',') == std::string::npos &&
         std::none_of(text.begin(), text.end(),
                      [](unsigned char c) { return std::isspace(c) != 0; }))
@@ -131,7 +131,7 @@ inline std::string quote_if_needed(std::string const& text) {
 
 //! Polymorphic non-owning interface for one named experiment axis.
 class ParameterBase {
-public:
+  public:
     //! Construct an axis with a name and command-line help description.
     explicit ParameterBase(std::string name, std::string description)
         : _name(std::move(name)), _description(std::move(description)) {
@@ -139,13 +139,13 @@ public:
             throw std::invalid_argument("parameter name must not be empty");
     }
     virtual ~ParameterBase() = default;
-    ParameterBase(ParameterBase const&) = delete;
-    ParameterBase& operator=(ParameterBase const&) = delete;
+    ParameterBase(const ParameterBase&) = delete;
+    ParameterBase& operator=(const ParameterBase&) = delete;
 
     //! Return the axis name.
-    std::string const& name() const { return _name; }
+    const std::string& name() const { return _name; }
     //! Return the axis description shown in CLI help.
-    std::string const& description() const { return _description; }
+    const std::string& description() const { return _description; }
     //! Return the number of values on this axis.
     virtual std::size_t size() const = 0;
     //! Format one value for configuration labels.
@@ -153,7 +153,7 @@ public:
     //! Create the argument parser for this axis.
     virtual ArgumentParser make_parser() = 0;
 
-private:
+  private:
     std::string _name;
     std::string _description;
 };
@@ -164,9 +164,9 @@ template<class T>
 //! Hold an ordered set of typed parameter values, including duplicates.
 //! Accept a scalar or comma-separated sequence through the command line.
 class Parameter final : public ParameterBase {
-public:
-    using Parser = std::function<T(std::string const&)>;
-    using Formatter = std::function<std::string(T const&)>;
+  public:
+    using Parser = std::function<T(const std::string&)>;
+    using Formatter = std::function<std::string(const T&)>;
 
     //! Construct a typed axis with nonempty defaults and optional conversion functions.
     Parameter(std::string name, std::string description, std::vector<T> defaults,
@@ -181,9 +181,9 @@ public:
 
     std::size_t size() const override { return _values.size(); }
     //! Access the value at one index.
-    T const& at(std::size_t index) const { return _values.at(index); }
+    const T& at(std::size_t index) const { return _values.at(index); }
     //! Return all configured values in order, with duplicates preserved.
-    std::vector<T> const& values() const { return _values; }
+    const std::vector<T>& values() const { return _values; }
     std::string display_at(std::size_t index) const override {
         return detail::quote_if_needed(_format(at(index)));
     }
@@ -193,9 +193,9 @@ public:
         return make_valued_argument_parser(
             "", String(name()),
             String(description() + " (single value or comma-separated list)"),
-            [this](String const& value) -> VoidFunction {
+            [this](const String& value) -> VoidFunction {
                 std::vector<T> parsed;
-                for (auto const& token : detail::split_values(std::string(value)))
+                for (const auto& token: detail::split_values(std::string(value)))
                     parsed.push_back(_parse(token));
                 // Validate every element before returning the commit action.
                 return [this, parsed = std::move(parsed)]() mutable {
@@ -204,7 +204,7 @@ public:
             });
     }
 
-private:
+  private:
     std::vector<T> _values;
     Parser _parse;
     Formatter _format;
@@ -212,9 +212,9 @@ private:
 
 //! One concrete combination of parameter positions with a one-based ordinal.
 class Configuration {
-public:
+  public:
     //! Capture axis references and selected indices for this configuration.
-    Configuration(std::vector<ParameterBase const*> axes,
+    Configuration(std::vector<const ParameterBase*> axes,
                   std::vector<std::size_t> indices,
                   std::size_t ordinal, std::size_t count)
         : _axes(std::move(axes)), _indices(std::move(indices)),
@@ -228,9 +228,10 @@ public:
     template<class T>
     //! Return the selected value of a registered typed parameter.
     //! @throws std::invalid_argument when the axis is absent.
-    T const& value(Parameter<T> const& axis) const {
+    const T& value(const Parameter<T>& axis) const {
         for (std::size_t i = 0; i < _axes.size(); ++i) {
-            if (_axes[i] == &axis) return axis.at(_indices[i]);
+            if (_axes[i] == &axis)
+                return axis.at(_indices[i]);
         }
         throw std::invalid_argument("parameter does not belong to the matrix");
     }
@@ -248,14 +249,15 @@ public:
     std::string label() const {
         std::ostringstream out;
         for (std::size_t i = 0; i < _axes.size(); ++i) {
-            if (i != 0u) out << ", ";
+            if (i != 0u)
+                out << ", ";
             out << _axes[i]->name() << '=' << _axes[i]->display_at(_indices[i]);
         }
         return out.str();
     }
 
-private:
-    std::vector<ParameterBase const*> _axes;
+  private:
+    std::vector<const ParameterBase*> _axes;
     std::vector<std::size_t> _indices;
     std::size_t _ordinal;
     std::size_t _count;
@@ -266,10 +268,10 @@ private:
 //! Lazily iterate a Cartesian product of non-owned typed parameter axes.
 //! The last axis varies fastest; an empty matrix denotes one configuration.
 class Matrix {
-public:
+  public:
     //! Register a uniquely named live axis without taking ownership.
     Matrix& add(ParameterBase& axis) {
-        for (auto const* present : _axes) {
+        for (const auto* present: _axes) {
             if (present == &axis or present->name() == axis.name())
                 throw std::invalid_argument("duplicate benchmark parameter");
         }
@@ -281,7 +283,7 @@ public:
     //! @throws std::overflow_error when the Cartesian size overflows.
     std::size_t combinations() const {
         std::size_t count = 1u;
-        for (auto const* axis : _axes) {
+        for (const auto* axis: _axes) {
             if (axis->size() == 0u or
                 count > std::numeric_limits<std::size_t>::max() / axis->size())
                 throw std::overflow_error("benchmark matrix size overflow");
@@ -293,7 +295,8 @@ public:
     //! Return parsers used to expose matrix axes in CommandLine.
     List<ArgumentParser> parsers() {
         List<ArgumentParser> result;
-        for (auto* axis : _axes) result.append(axis->make_parser());
+        for (auto* axis: _axes)
+            result.append(axis->make_parser());
         return result;
     }
 
@@ -301,12 +304,15 @@ public:
     std::string header() const {
         std::ostringstream out;
         out << "Parameters: ";
-        if (_axes.empty()) out << "(none)";
+        if (_axes.empty())
+            out << "(none)";
         for (std::size_t i = 0; i < _axes.size(); ++i) {
-            if (i != 0u) out << "; ";
+            if (i != 0u)
+                out << "; ";
             out << _axes[i]->name() << "=[";
             for (std::size_t j = 0; j < _axes[i]->size(); ++j) {
-                if (j != 0u) out << ", ";
+                if (j != 0u)
+                    out << ", ";
                 out << _axes[i]->display_at(j);
             }
             out << ']';
@@ -318,19 +324,20 @@ public:
     template<class Function>
     //! Visit each combination lazily, passing a temporary Configuration.
     void for_each(Function&& callback) const {
-        std::size_t const total = combinations();
+        const std::size_t total = combinations();
         std::vector<std::size_t> positions(_axes.size(), 0u);
-        std::vector<ParameterBase const*> axes(_axes.begin(), _axes.end());
+        std::vector<const ParameterBase*> axes(_axes.begin(), _axes.end());
         for (std::size_t run = 0; run < total; ++run) {
             std::invoke(callback, Configuration(axes, positions, run + 1u, total));
             for (std::size_t i = positions.size(); i != 0u; --i) {
-                if (++positions[i - 1u] < axes[i - 1u]->size()) break;
+                if (++positions[i - 1u] < axes[i - 1u]->size())
+                    break;
                 positions[i - 1u] = 0u;
             }
         }
     }
 
-private:
+  private:
     std::vector<ParameterBase*> _axes;
 };
 
