@@ -22,8 +22,6 @@
  *  along with Ariadne Benchmarking. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ariadne-benchmarking.hpp"
-
 #include <cstdint>
 #include <exception>
 #include <iostream>
@@ -31,9 +29,10 @@
 #include <stdexcept>
 #include <vector>
 
+#include "ariadne-benchmarking.hpp"
+
 using namespace Ariadne;
 namespace Bench = Ariadne::Benchmarking;
-
 
 // Part II runs after the parameterized sum experiment, using the same CLI
 // but its own fixed configuration and five measured rounds per backend.
@@ -48,7 +47,7 @@ struct VariantB {
     static unsigned increment(unsigned value) { return 1u + value; }
 };
 
-static void run_ab_comparison(Bench::CommandLine const& cli) {
+static void run_ab_comparison(const Bench::CommandLine& cli) {
     // An empty Matrix represents exactly one implicit configuration.
     // Unlike Part I, no lengths/iterations/samples command-line axis applies.
     Bench::Matrix one_configuration;
@@ -63,19 +62,13 @@ static void run_ab_comparison(Bench::CommandLine const& cli) {
         unsigned value = 0u;
         // Each full execution contains 1,000 increments; normalization later
         // divides the elapsed duration by 1,000 to obtain ns/increment.
-        record("increment",
-            [&] { value = 0u; },
-            [&] {
+        record("increment", [&] { value = 0u; }, [&] {
                 for (unsigned i = 0u; i < 1000u; ++i) {
                     value = Implementation::increment(value);
                     Bench::keep_alive(value);
-                }
-            },
-            [&] {
+                } }, [&] {
                 if (value != 1000u)
-                    throw std::runtime_error("incorrect increment result");
-            },
-            1000.0);
+                    throw std::runtime_error("incorrect increment result"); }, 1000.0);
     };
     // Five measured rounds per type, plus any global --warmups. The
     // --samples parameter from Part I does not control this comparison.
@@ -85,14 +78,15 @@ static void run_ab_comparison(Bench::CommandLine const& cli) {
     // is candidate/reference: values > 1 indicate that B is slower than A.
     // The global --summary option does not change this view's columns.
     Bench::ComparisonReports reports;
-    reports.add({"A/B", Bench::ComparisonReportKind::Pairs,
-                 {"operation", "reference_ns", "candidate_ns", "slowdown"}});
+    reports.add({
+        "A/B", Bench::ComparisonReportKind::Pairs, {"operation", "reference_ns", "candidate_ns", "slowdown"}
+    });
     reports.print_all(battery.results(), "A");
 }
 
-int main(int argc, char const* argv[]) {
+int main(int argc, const char* argv[]) {
     try {
-        Bench::Parameter<unsigned> lengths("lengths", "Input lengths", {64u,256u});
+        Bench::Parameter<unsigned> lengths("lengths", "Input lengths", {64u, 256u});
         Bench::Parameter<unsigned> iterations("iterations", "Iterations", {1000u});
         Bench::Parameter<unsigned> samples_count("samples", "Samples", {7u});
         // Axes are borrowed (not owned) by Matrix; keep the Parameter
@@ -105,7 +99,8 @@ int main(int argc, char const* argv[]) {
         cli.add_parameters(matrix);
         // Parse all global and axis-specific options before measuring.
         // A non-execution CLI request, such as help, exits successfully.
-        if (not cli.acquire(Bench::arguments(argc, argv))) return 0;
+        if (not cli.acquire(Bench::arguments(argc, argv)))
+            return 0;
 
         // Demonstrate advanced report layout in the non-comparison tutorial.
         // Report takes already-computed Statistics; it never times work.
@@ -127,14 +122,14 @@ int main(int argc, char const* argv[]) {
         // The matrix size determines log depth; --warmups is a global
         // policy inherited from CommandLine, not an experiment axis.
         Bench::Runner runner(cli, matrix.combinations());
-        matrix.for_each([&](Bench::Configuration const& config) {
+        matrix.for_each([&](const Bench::Configuration& config) {
             runner.configuration_started(config);
             // Configuration resolves the selected typed values. Length is
             // vector size, iterations is traversals per timed operation,
             // and samples is the number of reported timing observations.
-            unsigned const size = config.value(lengths);
-            unsigned const repetitions = config.value(iterations);
-            unsigned const measured = config.value(samples_count);
+            const unsigned size = config.value(lengths);
+            const unsigned repetitions = config.value(iterations);
+            const unsigned measured = config.value(samples_count);
             if (size == 0u || repetitions == 0u || measured == 0u)
                 throw std::invalid_argument("lengths, iterations and samples must be positive");
             // Initialize the vector only once per configuration. Its sum
@@ -162,7 +157,8 @@ int main(int argc, char const* argv[]) {
                 },
                 [&] {
                     for (unsigned k = 0u; k < repetitions; ++k) {
-                        for (auto const value : data) sum += value;
+                        for (const auto value: data)
+                            sum += value;
                         // Make the accumulator observable so the compiler
                         // cannot simply delete unused work in a timed loop.
                         Bench::keep_alive(sum);
@@ -178,10 +174,9 @@ int main(int argc, char const* argv[]) {
                 static_cast<double>(repetitions));
             // Summarize only the retained, normalized measured samples.
             // Each row carries the concrete descriptive matrix values.
-            report.add_row({
-                std::to_string(size), std::to_string(repetitions),
-                std::to_string(measured), "sum"
-            }, Bench::summarize(results));
+            report.add_row({std::to_string(size), std::to_string(repetitions),
+                            std::to_string(measured), "sum"},
+                           Bench::summarize(results));
             runner.configuration_completed(config);
         });
         // Rendering and Logging run after all measurements, not in the
@@ -191,7 +186,7 @@ int main(int argc, char const* argv[]) {
         // Part II: A/B follows the complete non-A/B example.
         run_ab_comparison(cli);
         return 0;
-    } catch (std::exception const& error) {
+    } catch (const std::exception& error) {
         LOGGING_PRINTLN("tutorial_benchmarking: " << error.what())
         return 1;
     }

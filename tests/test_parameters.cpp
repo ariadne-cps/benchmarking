@@ -22,37 +22,37 @@
  *  along with Ariadne Benchmarking. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ariadne-benchmarking.hpp"
-#include "ariadne-testing.hpp"
-
 #include <cmath>
+#include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <iostream>
-#include <limits>
+
+#include "ariadne-benchmarking.hpp"
+#include "ariadne-testing.hpp"
 
 using namespace Ariadne::Benchmarking;
 using namespace Ariadne::Testing;
 
 class TestParameters : public ContextFixture {
-public:
+  public:
     using ContextFixture::ContextFixture;
 
     void test_quoted_and_escaped_values() {
         ARIADNE_TESTING_EXPECT_EQUAL(detail::split_values("a\\,b,\"\",c\\\\d"),
-                                    std::vector<std::string>({"a,b", "", "c\\d"}));
+                                     std::vector<std::string>({"a,b", "", "c\\d"}));
         ARIADNE_TESTING_EXPECT_EQUAL(detail::split_values("\"\""),
-                                    std::vector<std::string>({""}));
-        for (char const* input : {"", " ", "1,", "unfinished\\"}) {
+                                     std::vector<std::string>({""}));
+        for (const char* input: {"", " ", "1,", "unfinished\\"}) {
             auto scope = ctx().scope("invalid value list", input);
             ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, detail::split_values(input));
         }
         ARIADNE_TESTING_EXPECT_EQUAL(detail::quote_if_needed("a,b"), "\"a,b\"");
-        for (char const* input : {"", "-1", "bad", "1tail"}) {
+        for (const char* input: {"", "-1", "bad", "1tail"}) {
             auto scope = ctx().scope("invalid numeric parameter", input);
             ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-                                        detail::parse_value<unsigned>(input));
+                                          detail::parse_value<unsigned>(input));
         }
         ARIADNE_TESTING_EXPECT_EQUAL(detail::parse_value<unsigned>("2 "), 2u);
         ARIADNE_TESTING_EXPECT_EQUAL(detail::parse_value<std::string>("a,b"), "a,b");
@@ -60,13 +60,13 @@ public:
 
     void test_parameter_contracts() {
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-                                    Parameter<unsigned>("", "Unnamed", {1u}));
+                                      Parameter<unsigned>("", "Unnamed", {1u}));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-                                    Parameter<unsigned>("x", "Empty", {}));
+                                      Parameter<unsigned>("x", "Empty", {}));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-                                    Parameter<unsigned>("x", "No parser", {1u}, {}));
+                                      Parameter<unsigned>("x", "No parser", {1u}, {}));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            Parameter<unsigned>("x", "No formatter", {1u}, detail::parse_value<unsigned>, {}));
+                                      Parameter<unsigned>("x", "No formatter", {1u}, detail::parse_value<unsigned>, {}));
         Parameter<unsigned> first("first", "First", {2u});
         Parameter<unsigned> second("second", "Second", {3u});
         Parameter<unsigned> absent("absent", "Absent", {4u});
@@ -75,7 +75,7 @@ public:
         matrix.add(first).add(second);
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, matrix.add(first));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, matrix.add(duplicate));
-        matrix.for_each([&](Configuration const& config) {
+        matrix.for_each([&](const Configuration& config) {
             ARIADNE_TESTING_EXPECT_EQUAL(config.value(second), 3u);
             ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, config.value(absent));
         });
@@ -88,10 +88,10 @@ public:
         matrix.add(backend);
         CommandLine cli;
         cli.add_parameters(matrix);
-        char const* argv[] = {"benchmark", "--backend", "fast,\"b,c\",\"\""};
+        const char* argv[] = {"benchmark", "--backend", "fast,\"b,c\",\"\""};
         ARIADNE_TESTING_PROVE(cli.acquire(arguments(3, argv)));
         ARIADNE_TESTING_EXPECT_EQUAL(backend.values(),
-                                    std::vector<std::string>({"fast", "b,c", ""}));
+                                     std::vector<std::string>({"fast", "b,c", ""}));
         ARIADNE_TESTING_EXPECT_EQUAL(matrix.combinations(), 3u);
     }
 
@@ -99,7 +99,7 @@ public:
         Matrix matrix;
         ARIADNE_TESTING_EXPECT_EQUAL(matrix.header(), "Parameters: (none) | configurations=1");
         unsigned calls = 0u;
-        matrix.for_each([&](Configuration const& config) {
+        matrix.for_each([&](const Configuration& config) {
             ++calls;
             ARIADNE_TESTING_EXPECT_EQUAL(config.ordinal(), 1u);
             ARIADNE_TESTING_EXPECT_EQUAL(config.count(), 1u);
@@ -113,7 +113,7 @@ public:
     void test_lazy_matrix_cardinality_limits() {
         // A lazy axis exposes cardinality without allocating its entire domain.
         class LazyAxis : public ParameterBase {
-        public:
+          public:
             LazyAxis(std::string name, std::size_t count)
                 : ParameterBase(std::move(name), "Lazy index range"), _count(count) {}
             std::size_t size() const override { return _count; }
@@ -123,7 +123,8 @@ public:
             Ariadne::ArgumentParser make_parser() override {
                 throw std::logic_error("fixed cardinality axis has no CLI parser");
             }
-        private:
+
+          private:
             std::size_t _count;
         };
         LazyAxis empty("empty", 0u);
@@ -145,23 +146,22 @@ public:
         Matrix matrix;
         matrix.add(size).add(backend);
         std::vector<std::string> seen;
-        matrix.for_each([&](Configuration const& config) {
+        matrix.for_each([&](const Configuration& config) {
             seen.push_back(config.label());
             // typed parameter lookup
-        ARIADNE_TESTING_PROVE(config.value(size) == 2u || config.value(size) == 4u);
+            ARIADNE_TESTING_PROVE(config.value(size) == 2u || config.value(size) == 4u);
         });
         // Cartesian product order
         ARIADNE_TESTING_PROVE(matrix.combinations() == 4u &&
-                  seen == std::vector<std::string>({
-                      "size=2, backend=fast", "size=2, backend=slow",
-                      "size=4, backend=fast", "size=4, backend=slow"}));
+                              seen == std::vector<std::string>({"size=2, backend=fast", "size=2, backend=slow",
+                                                                "size=4, backend=fast", "size=4, backend=slow"}));
         // quote only separators and whitespace
         ARIADNE_TESTING_PROVE(detail::quote_if_needed("backend") == "backend" &&
-                  detail::quote_if_needed("fast") == "fast" &&
-                  detail::quote_if_needed("hello world") == std::string(1, '"') + "hello world" + '"');
+                              detail::quote_if_needed("fast") == "fast" &&
+                              detail::quote_if_needed("hello world") == std::string(1, '"') + "hello world" + '"');
         // all parameter sequences listed in header
         ARIADNE_TESTING_PROVE(matrix.header() ==
-                  "Parameters: size=[2, 4]; backend=[fast, slow] | configurations=4");
+                              "Parameters: size=[2, 4]; backend=[fast, slow] | configurations=4");
     }
 
     void test_list_cli_parsing_and_duplicates() {
@@ -174,21 +174,20 @@ public:
         args.append(Ariadne::String("test_benchmarking"));
         args.append(Ariadne::String("--size"));
         args.append(Ariadne::String("2, 3,2"));
-        bool const accepted = cli.acquire(args);
+        const bool accepted = cli.acquire(args);
         // CLI retains order and duplicate values
         ARIADNE_TESTING_PROVE(accepted &&
-                  size.values() == std::vector<unsigned>({2u,3u,2u}));
+                              size.values() == std::vector<unsigned>({2u, 3u, 2u}));
         // empty list members rejected
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            detail::split_values("1,,3"));
+                                      detail::split_values("1,,3"));
         // unterminated quoted value rejected
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            detail::split_values("\"unterminated"));
+                                      detail::split_values("\"unterminated"));
         // quoted comma preserved in a string value
         ARIADNE_TESTING_PROVE(detail::split_values("a,\"b,c\",d") ==
-                  std::vector<std::string>({"a","b,c","d"}));
+                              std::vector<std::string>({"a", "b,c", "d"}));
     }
-
 };
 
 int main(int argc, char** argv) {

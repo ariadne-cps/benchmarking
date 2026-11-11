@@ -22,48 +22,49 @@
  *  along with Ariadne Benchmarking. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ariadne-benchmarking.hpp"
-#include "ariadne-testing.hpp"
-#include "log_capture.hpp"
-
 #include <cmath>
+#include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <iostream>
-#include <limits>
+
+#include "log_capture.hpp"
+
+#include "ariadne-benchmarking.hpp"
+#include "ariadne-testing.hpp"
 
 using namespace Ariadne::Benchmarking;
 using namespace Ariadne::Testing;
 
 class TestRunner : public ContextFixture {
-public:
+  public:
     using ContextFixture::ContextFixture;
 
     void test_runner_validation_in_one_instantiation() {
         auto no_op = [] {};
         Runner runner(1u);
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            runner.run("zero", 0u, no_op, no_op, no_op));
-        for (double invalid : {0.0, -1.0, std::numeric_limits<double>::infinity(),
-                               std::numeric_limits<double>::quiet_NaN()}) {
+                                      runner.run("zero", 0u, no_op, no_op, no_op));
+        for (double invalid: {0.0, -1.0, std::numeric_limits<double>::infinity(),
+                              std::numeric_limits<double>::quiet_NaN()}) {
             auto scope = ctx().scope("normalization", invalid);
             ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-                runner.run("normalization", 1u, no_op, no_op, no_op, invalid));
+                                          runner.run("normalization", 1u, no_op, no_op, no_op, invalid));
         }
         ARIADNE_TESTING_EXPECT_THROWS(std::overflow_error,
-            runner.run("overflow", std::numeric_limits<unsigned>::max(), no_op, no_op, no_op));
+                                      runner.run("overflow", std::numeric_limits<unsigned>::max(), no_op, no_op, no_op));
         ARIADNE_TESTING_EXPECT_EQUAL(runner.run("valid", 2u, no_op, no_op, no_op, 2.0).size(), 2u);
     }
 
     void test_progress_logging() {
         LogCapture capture;
         Configuration config({}, {}, 1u, 2u);
-        for (unsigned verbosity : {0u, 4u}) {
+        for (unsigned verbosity: {0u, 4u}) {
             auto scope = ctx().scope("verbosity", verbosity);
             capture.verbosity(verbosity);
             capture.clear();
-            for (std::size_t count : {1u, 2u}) {
+            for (std::size_t count: {1u, 2u}) {
                 RunLog log(count);
                 log.configuration_started(config);
                 log.configuration_completed(config);
@@ -73,7 +74,7 @@ public:
                 log.measurement("measured", 2u, 12.0, 6.0);
                 log.execution_completed("measured", 2u, false);
             }
-            auto const output = capture.str();
+            const auto output = capture.str();
             if (verbosity == 0u) {
                 ARIADNE_TESTING_PROVE(output.empty());
             } else {
@@ -99,9 +100,9 @@ public:
         RunLog matrix(2u);
         // matrix adds exactly one detail level
         ARIADNE_TESTING_PROVE(single.execution_level() == 2u &&
-                  single.measurement_level() == 3u &&
-                  matrix.execution_level() == 3u &&
-                  matrix.measurement_level() == 4u);
+                              single.measurement_level() == 3u &&
+                              matrix.execution_level() == 3u &&
+                              matrix.measurement_level() == 4u);
     }
 
     void test_warmups_are_verified_and_excluded_from_statistics() {
@@ -110,7 +111,7 @@ public:
         unsigned verified = 0u;
         unsigned value = 0u;
         Runner runner(2u);
-        Samples const samples = runner.run(
+        const Samples samples = runner.run(
             "work", 3u,
             [&] { ++prepared; value = 0u; },
             [&] { ++executed; value = 7u; },
@@ -128,29 +129,24 @@ public:
     void test_default_runner_performs_no_warmups() {
         Runner runner;
         unsigned executed = 0u;
-        Samples const samples = runner.run(
+        const Samples samples = runner.run(
             "work", 2u,
             [] {},
             [&] { ++executed; },
             [] {});
         // zero warmup default preserves sample count
         ARIADNE_TESTING_PROVE(runner.warmups() == 0u && executed == 2u &&
-                  samples.size() == 2u);
+                              samples.size() == 2u);
     }
 
     void test_warmup_verification_failures_propagate() {
         Runner runner(1u);
         unsigned executed = 0u;
         ARIADNE_TESTING_EXPECT_THROWS_MESSAGE(std::runtime_error,
-            runner.run("invalid", 1u,
-                [] {},
-                [&] { ++executed; },
-                [&] { throw std::runtime_error("verification failed"); }),
-            "verification failed");
+                                              runner.run("invalid", 1u, [] {}, [&] { ++executed; }, [&] { throw std::runtime_error("verification failed"); }), "verification failed");
         // invalid warmup aborts rather than silently discarding
         ARIADNE_TESTING_EXPECT_EQUAL(executed, 1u);
     }
-
 };
 
 int main(int argc, char** argv) {
