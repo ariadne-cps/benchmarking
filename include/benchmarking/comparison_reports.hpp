@@ -143,6 +143,7 @@ class ComparisonReports {
   private:
     using Cells = std::map<std::string, std::string>;
 
+    /** @brief Return the display heading for the comparison field. */
     static std::string heading(const std::string& name) {
         static const std::map<std::string, std::string> headings{
             {     "implementation",      "Implementation"},
@@ -171,12 +172,14 @@ class ComparisonReports {
         return std::string(summary_field_heading(parse_summary_fields(name).front()));
     }
 
+    /** @brief Append workload dimensions to the report cells. */
     static void dimensions(Cells& cells, const ComparisonContext& context) {
         cells.emplace("configuration", context.label);
         for (const auto& [name, value]: context.dimensions)
             cells.emplace("param:" + name, value);
     }
 
+    /** @brief Append summary statistics to the report cells. */
     static void statistics(Cells& cells, const Statistics& stats) {
         cells.emplace("min", Table::number(stats.minimum));
         cells.emplace("max", Table::number(stats.maximum));
@@ -189,6 +192,7 @@ class ComparisonReports {
         cells.emplace("count", std::to_string(stats.count));
     }
 
+    /** @brief Test whether a comparison field contains numeric data. */
     static bool numeric(const std::string& field) {
         return field == "min" or field == "max" or field == "mean" or
                field == "mad" or field == "median" or field == "p95" or
@@ -199,6 +203,7 @@ class ComparisonReports {
                field == "total_time" or field == "worst";
     }
 
+    /** @brief Render a comparison report using the selected reference implementation. */
     static std::string render_definition(const ComparisonReportDefinition& def,
                                          const ComparisonResults& results,
                                          const std::string& reference) {

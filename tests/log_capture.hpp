@@ -36,8 +36,10 @@
 
 // These tests own the process logger and run without a ThreadManager. Capture
 // its immediate output and restore formatting and the stream even on failure.
+/** @brief Scoped capture of logger output for benchmark tests. */
 class LogCapture {
   public:
+    /** @brief Construct a \c LogCapture with the specified characteristics. */
     LogCapture()
         : _verbosity(Ariadne::Logger::instance().configuration().verbosity()),
           _theme(Ariadne::Logger::instance().configuration().theme()) {
@@ -45,18 +47,24 @@ class LogCapture {
         Ariadne::Logger::instance().configuration().set_theme(Ariadne::TT_THEME_NONE);
         _previous = std::clog.rdbuf(_output.rdbuf());
     }
+    /** @brief Destroy the object and release its owned resources. */
     ~LogCapture() {
         std::clog.rdbuf(_previous);
         Ariadne::Logger::instance().configuration().set_verbosity(_verbosity);
         Ariadne::Logger::instance().configuration().set_theme(_theme);
     }
+    /** @brief Disallow this construction to preserve the ownership contract. */
     LogCapture(const LogCapture&) = delete;
+    /** @brief Disallow assignment to preserve the ownership contract. */
     LogCapture& operator=(const LogCapture&) = delete;
+    /** @brief Return the configured diagnostic verbosity. */
     void verbosity(unsigned value) {
         auto& logger = Ariadne::Logger::instance();
         logger.configuration().set_verbosity(value == 0u ? 0u : logger.current_level() + value);
     }
+    /** @brief Return the string representation. */
     std::string str() const { return _output.str(); }
+    /** @brief Remove all elements. */
     void clear() { _output.str({}); }
 
   private:

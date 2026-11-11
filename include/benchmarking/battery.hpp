@@ -92,6 +92,7 @@ class ComparisonBattery {
     }
 
   private:
+    /** @brief Run one benchmark implementation and record its comparison results. */
     template<class Implementation, class Workload>
     void run_one(const std::string& name, const ComparisonContext& context,
                  const Runner& runner, unsigned samples,

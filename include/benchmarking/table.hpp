@@ -206,6 +206,7 @@ class Table {
     }
 
   private:
+    /** @brief Reject cell contents that cannot be represented by the table format. */
     static void validate_cell(const std::string& value) {
         if (value.find_first_of("\r\n") != std::string::npos)
             throw std::invalid_argument("table values must be single-line");

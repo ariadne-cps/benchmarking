@@ -47,6 +47,7 @@ namespace Ariadne::Benchmarking {
 
 namespace detail {
 
+/** @brief Remove leading and trailing whitespace. */
 inline std::string trim(const std::string& value) {
     const auto is_space = [](unsigned char c) { return std::isspace(c) != 0; };
     auto first = std::find_if_not(value.begin(), value.end(), is_space);
@@ -56,6 +57,7 @@ inline std::string trim(const std::string& value) {
 
 // CSV with quoted items and backslash escapes (e.g. "a,b",c or a\\,b,c).
 // Invalid or empty unquoted items are rejected instead of being skipped.
+/** @brief Split the parameter list while respecting quoted values. */
 inline std::vector<std::string> split_values(const std::string& input) {
     std::vector<std::string> tokens;
     std::string token;
@@ -91,6 +93,7 @@ inline std::vector<std::string> split_values(const std::string& input) {
     return tokens;
 }
 
+/** @brief Parse a parameter value as the requested type. */
 template<class T>
 T parse_value(const std::string& text) {
     if constexpr (std::is_same_v<T, std::string>) {
@@ -111,6 +114,7 @@ T parse_value(const std::string& text) {
     }
 }
 
+/** @brief Format a parameter value as text. */
 template<class T>
 std::string format_value(const T& value) {
     std::ostringstream out;
@@ -118,6 +122,7 @@ std::string format_value(const T& value) {
     return out.str();
 }
 
+/** @brief Quote parameter text when required to preserve it during parsing. */
 inline std::string quote_if_needed(const std::string& text) {
     if (text.find(',') == std::string::npos &&
         std::none_of(text.begin(), text.end(),
@@ -138,8 +143,11 @@ class ParameterBase {
         if (_name.empty())
             throw std::invalid_argument("parameter name must not be empty");
     }
+    /** @brief Destroy the object and release its owned resources. */
     virtual ~ParameterBase() = default;
+    /** @brief Disallow this construction to preserve the ownership contract. */
     ParameterBase(const ParameterBase&) = delete;
+    /** @brief Disallow assignment to preserve the ownership contract. */
     ParameterBase& operator=(const ParameterBase&) = delete;
 
     //! Return the axis name.

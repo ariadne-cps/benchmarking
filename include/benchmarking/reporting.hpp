@@ -53,6 +53,7 @@ enum class ReportTimeUnit {
 };
 
 // Display-only conversion from internally stored nanoseconds.
+/** @brief Return the divisor converting nanoseconds to the selected report unit. */
 inline double report_time_divisor(ReportTimeUnit unit) {
     switch (unit) {
         case ReportTimeUnit::Nanoseconds:
@@ -68,6 +69,7 @@ inline double report_time_divisor(ReportTimeUnit unit) {
     }
 }
 
+/** @brief Return the suffix of the selected report time unit. */
 inline std::string_view report_time_suffix(ReportTimeUnit unit) {
     switch (unit) {
         case ReportTimeUnit::Nanoseconds:
@@ -142,6 +144,7 @@ class Report {
         (void)report_time_divisor(unit); // Reject invalid enum values.
         _time_unit = unit;
     }
+    /** @brief Return the time unit used by the report. */
     ReportTimeUnit time_unit() const { return _time_unit; }
 
     // Keep the original Report API for existing benchmark clients.
@@ -196,11 +199,13 @@ class Report {
     }
 
   private:
+    /** @brief Stored report row with its identifying data and statistics. */
     struct Row {
         std::vector<std::string> dimensions;
         Statistics result;
     };
 
+    /** @brief Format the selected statistic in the requested time unit. */
     static std::string formatted_value(
         const Statistics& stats, SummaryField field, ReportTimeUnit time_unit) {
         if (field == SummaryField::Count)
