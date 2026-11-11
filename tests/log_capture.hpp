@@ -1,3 +1,31 @@
+/***************************************************************************
+ *            tests/log_capture.hpp
+ *
+ *  Copyright  2026
+ *
+ ****************************************************************************/
+
+/*
+ *  This file is part of Ariadne Benchmarking.
+ *
+ *  Ariadne Benchmarking is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Ariadne Benchmarking is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Ariadne Benchmarking. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/** @file tests/log_capture.hpp
+ *  @brief Helpers for capturing and restoring logger output in benchmark tests.
+ */
+
 #ifndef ARIADNE_BENCHMARKING_TEST_LOG_CAPTURE_HPP
 #define ARIADNE_BENCHMARKING_TEST_LOG_CAPTURE_HPP
 
