@@ -89,19 +89,6 @@ cmake --build build-debug --parallel --target tests
 ctest --test-dir build-debug --output-on-failure
 ```
 
-## Tutorial
-
-```sh
-cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
-cmake --build build-release --target tutorial_benchmarking
-./build-release/tutorial/tutorial_benchmarking --iterations 1000 --samples 7 --warmups 2
-```
-
-The single tutorial progresses from a feature-rich ordinary benchmark
-(including parameter matrices, custom summary and table layout) to a
-minimal A/B comparison with two implementation templates and one paired report.
-See [tutorial/README.md](tutorial/README.md) for the walkthrough.
-
 ## Integration in consumer repositories
 
 With a pinned Benchmarking gitlink and the corresponding Build refactoring,
