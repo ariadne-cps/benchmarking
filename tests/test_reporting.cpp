@@ -33,6 +33,7 @@
 
 #include "ariadne-benchmarking.hpp"
 #include "ariadne-testing.hpp"
+#include "logging/test_runner.hpp"
 
 using namespace Ariadne::Benchmarking;
 using namespace Ariadne::Testing;
@@ -337,5 +338,5 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_table_widths_use_actual_displayed_values);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_group_separators_and_optional_minimum_widths);
     ARIADNE_TESTING_ADD_TEST(TestReporting, test_custom_report_dimensions_and_computed_numeric_widths);
-    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
+    return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

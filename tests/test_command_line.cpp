@@ -31,6 +31,7 @@
 
 #include "ariadne-benchmarking.hpp"
 #include "ariadne-testing.hpp"
+#include "logging/test_runner.hpp"
 
 using namespace Ariadne::Benchmarking;
 using namespace Ariadne::Testing;
@@ -142,5 +143,5 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestCommandLine, test_summary_columns_and_cli_selection);
     ARIADNE_TESTING_ADD_TEST(TestCommandLine, test_logging_without_threading);
     ARIADNE_TESTING_ADD_TEST(TestCommandLine, test_global_warmup_cli);
-    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
+    return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

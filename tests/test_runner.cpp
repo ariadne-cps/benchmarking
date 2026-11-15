@@ -33,6 +33,7 @@
 
 #include "ariadne-benchmarking.hpp"
 #include "ariadne-testing.hpp"
+#include "logging/test_runner.hpp"
 
 using namespace Ariadne::Benchmarking;
 using namespace Ariadne::Testing;
@@ -157,5 +158,5 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestRunner, test_warmups_are_verified_and_excluded_from_statistics);
     ARIADNE_TESTING_ADD_TEST(TestRunner, test_default_runner_performs_no_warmups);
     ARIADNE_TESTING_ADD_TEST(TestRunner, test_warmup_verification_failures_propagate);
-    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
+    return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

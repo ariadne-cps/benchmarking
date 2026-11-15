@@ -89,6 +89,14 @@ cmake --build build-debug --parallel --target tests
 ctest --test-dir build-debug --output-on-failure
 ```
 
+The six test executables use Logging's dedicated test runner. CTest invokes
+them with `--concise --logtonull`, keeping test summaries concise and
+discarding Logger output without suppressing enabled logging expressions.
+Direct execution without flags instead shows full test-case reports and
+normal Logger diagnostics. These are independent options. The specialised
+runner is confined to test code, and the Logging repository's own tests
+retain visible Logger output.
+
 ## Integration in consumer repositories
 
 With a pinned Benchmarking gitlink and the corresponding Build refactoring,
